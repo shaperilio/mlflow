@@ -484,7 +484,7 @@ export const useRunsColumnDefinitions = ({
             headerComponentParams: {
               canonicalSortKey,
             },
-            valueFormatter: customMetricColumnDef?.valueFormatter,
+            valueFormatter: customMetricColumnDef?.valueFormatter ?? (({ value }) => value !== undefined ? Utils.formatMetric(value) : ''),
             cellRendererSelector: ({ data: { groupParentInfo } }) =>
               groupParentInfo ? { component: 'AggregateMetricValueCell' } : undefined,
             cellClassRules: {
