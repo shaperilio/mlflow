@@ -20,6 +20,7 @@ import RunsMetricsLegendWrapper from './RunsMetricsLegendWrapper';
 import { createChartImageDownloadHandler } from '../hooks/useChartImageDownloadHandler';
 import { customMetricBehaviorDefs } from '../../experiment-page/utils/customMetricBehaviorUtils';
 import { RunsChartCardLoadingPlaceholder } from './cards/ChartCard.common';
+import Utils from '../../../../common/utils/Utils';
 
 // We're not using params in bar plot
 export type BarPlotRunData = Omit<RunsChartsRunData, 'params' | 'tags' | 'images'>;
@@ -72,7 +73,7 @@ const Y_AXIS_PARAMS = {
   fixedrange: true,
 };
 
-const getFixedPointValue = (val: string | number, places = 2) => (typeof val === 'number' ? val.toFixed(places) : val);
+const getFixedPointValue = (val: string | number): string => (typeof val === 'number' ? Utils.formatMetric(val) : val);
 
 /**
  * Implementation of plotly.js chart displaying
