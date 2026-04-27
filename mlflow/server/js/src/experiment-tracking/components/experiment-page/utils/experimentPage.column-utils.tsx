@@ -45,6 +45,7 @@ import { AggregateMetricValueCell } from '../components/runs/cells/AggregateMetr
 import { type RUNS_VISIBILITY_MODE } from '../models/ExperimentPageUIState';
 import { useMediaQuery } from '@databricks/web-shared/hooks';
 import { customMetricBehaviorDefs } from './customMetricBehaviorUtils';
+import { computeColumnFormatSpec } from './metricColumnFormat';
 
 const cellClassIsOrderedBy = ({ colDef, context }: CellClassParams) => {
   return context.orderByKey === colDef.headerComponentParams?.canonicalSortKey;
@@ -160,6 +161,8 @@ export interface UseRunsColumnDefinitionsParams {
   allRunsHidden?: boolean;
   usingCustomVisibility?: boolean;
   runsHiddenMode?: RUNS_VISIBILITY_MODE;
+  /** All current row data, used to compute per-column number format specs. */
+  rowsData?: RunRowType[];
 }
 
 /**
@@ -249,6 +252,7 @@ export const useRunsColumnDefinitions = ({
   isComparingRuns,
   expandRows,
   runsHiddenMode,
+  rowsData,
 }: UseRunsColumnDefinitionsParams) => {
   const { theme } = useDesignSystemTheme();
 
@@ -470,6 +474,12 @@ export const useRunsColumnDefinitions = ({
           const displayName = customMetricColumnDef?.displayName ?? metricKey;
           const fieldName = createMetricFieldName(metricKey);
           const tooltip = getQualifiedEntityName(COLUMN_TYPES.METRICS, metricKey);
+
+          // Compute a column-aware format spec from all current row values.
+          // Falls back gracefully when rowsData is empty (e.g. before data loads).
+          const columnValues = (rowsData ?? []).map((row) => row[fieldName] as number | undefined | null);
+          const formatSpec = computeColumnFormatSpec(columnValues);
+
           return {
             headerName: displayName,
             colId: canonicalSortKey,
@@ -483,8 +493,9 @@ export const useRunsColumnDefinitions = ({
             sortable: true,
             headerComponentParams: {
               canonicalSortKey,
+              headerAnnotation: formatSpec.headerAnnotation,
             },
-            valueFormatter: customMetricColumnDef?.valueFormatter ?? (({ value }) => value !== undefined ? Utils.formatMetric(value) : ''),
+            valueFormatter: customMetricColumnDef?.valueFormatter ?? (({ value }) => formatSpec.format(value)),
             cellRendererSelector: ({ data: { groupParentInfo } }) =>
               groupParentInfo ? { component: 'AggregateMetricValueCell' } : undefined,
             cellClassRules: {
@@ -555,6 +566,7 @@ export const useRunsColumnDefinitions = ({
     onDatasetSelected,
     expandRows,
     usingCompactViewport,
+    rowsData,
   ]);
 
   const canonicalSortKeys = useMemo(
