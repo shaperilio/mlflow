@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 import type { MetricEntity } from '../../../types';
 import { LazyPlot } from '../../LazyPlot';
+import { computeColumnFormatSpec, type ColumnFormatSpec } from '../../experiment-page/utils/metricColumnFormat';
 import { useMutableChartHoverCallback } from '../hooks/useMutableHoverCallback';
 import { highlightLineTraces, useRenderRunsChartTraceHighlight } from '../hooks/useRunsChartTraceHighlight';
 import type { RunsChartsRunData, RunsPlotsCommonProps } from './RunsCharts.common';
@@ -301,6 +302,8 @@ export interface RunsCompareMultipleTracesTooltipData {
   xAxisKey: RunsChartsLineChartXAxisType;
   xAxisKeyLabel: string;
   hoveredDataPoint?: RunsMetricsSingleTraceTooltipData;
+  /** Pre-computed format spec derived from all y-values in the chart (all steps/traces). */
+  formatSpec?: ColumnFormatSpec;
 }
 
 export interface RunsMetricsLinePlotProps extends RunsPlotsCommonProps {
@@ -761,6 +764,13 @@ export const RunsMetricsLinePlot = React.memo(
       [runsData, selectedMetricKeys, metricKey, yAxisKey, yAxisExpressions],
     );
 
+    // Compute a format spec from ALL y-values across every trace so the tooltip
+    // uses consistent formatting even at steps where every run happens to be 0.
+    const globalFormatSpec = useMemo(() => {
+      const allYValues = plotData.flatMap((trace) => trace.y ?? []) as (number | undefined | null)[];
+      return computeColumnFormatSpec(allYValues);
+    }, [plotData]);
+
     const {
       scanlineElement,
       initHandler,
@@ -779,6 +789,7 @@ export const RunsMetricsLinePlot = React.memo(
       xAxisScaleType: xAxisKey === RunsChartsLineChartXAxisType.STEP ? xAxisScaleType : 'linear',
       setHoveredPointIndex,
       positionInSection,
+      globalFormatSpec,
     });
 
     /**
