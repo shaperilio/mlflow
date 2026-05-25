@@ -41,7 +41,6 @@ export const ColumnHeaderCell = ({
     <div
       role="columnheader"
       css={{
-        height: '100%',
         width: '100%',
         display: 'flex',
         alignItems: 'center',
@@ -50,13 +49,13 @@ export const ColumnHeaderCell = ({
     >
       <div
         css={{
-          height: '100%',
           width: '100%',
           display: 'flex',
-          alignItems: 'center',
-          overflow: 'hidden',
+          alignItems: 'flex-start',
           paddingLeft: theme.spacing.xs + theme.spacing.sm,
           paddingRight: theme.spacing.xs + theme.spacing.sm,
+          paddingTop: theme.spacing.xs,
+          paddingBottom: theme.spacing.xs,
           gap: theme.spacing.sm,
           svg: {
             color: theme.colors.textSecondary,
@@ -71,11 +70,11 @@ export const ColumnHeaderCell = ({
         className={selectedCanonicalSortKey === orderByKey ? isOrderedByClassName : ''}
         onClick={enableSorting ? handleSortBy : undefined}
       >
-        <div css={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-          <div css={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm, overflow: 'hidden' }}>
+        <div css={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+          <div css={{ display: 'flex', alignItems: 'flex-start', gap: theme.spacing.sm }}>
             <span
               data-testid={`sort-header-${displayName}`}
-              css={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              css={{ wordBreak: 'break-word', overflowWrap: 'anywhere', whiteSpace: 'normal' }}
             >
               {displayName}
             </span>

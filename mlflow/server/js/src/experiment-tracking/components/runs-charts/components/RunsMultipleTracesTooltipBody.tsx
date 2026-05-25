@@ -120,7 +120,7 @@ export const RunsMultipleTracesTooltipBody = ({ hoverData }: { hoverData: RunsCo
                       color: hoveredTraceUuid === uuid ? 'unset' : theme.colors.textPlaceholder,
                     }}
                   >
-                    {formatSpec ? formatSpec.format(value) : Utils.formatMetric(value)}
+                    {(() => { const n = typeof value === 'string' ? parseFloat(value) : value; return formatSpec ? formatSpec.format(n) : Utils.formatMetric(n); })()}
                   </span>
                 )}
               </div>

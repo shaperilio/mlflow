@@ -615,4 +615,5 @@ export const EXPERIMENTS_DEFAULT_COLUMN_SETUP = {
   filter: true,
   suppressMenu: true,
   suppressMovable: true,
+  wrapHeaderText: true,
 };
