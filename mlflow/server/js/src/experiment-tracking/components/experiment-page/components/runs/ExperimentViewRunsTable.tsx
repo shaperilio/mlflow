@@ -396,7 +396,8 @@ export const ExperimentViewRunsTable = React.memo(
                 onGridReady={gridReadyHandler}
                 onSelectionChanged={onSelectionChange}
                 getRowHeight={rowHeightGetterFn}
-                headerHeight={EXPERIMENT_RUNS_TABLE_ROW_HEIGHT}
+                headerHeight={EXPERIMENT_RUNS_TABLE_ROW_HEIGHT * 2}
+                groupHeaderHeight={EXPERIMENT_RUNS_TABLE_ROW_HEIGHT}
                 onRowSelected={handleRowSelected}
                 suppressRowClickSelection
                 suppressColumnMoveAnimation
@@ -555,6 +556,9 @@ const styles = {
         '.ag-header-cell': usingCustomHeaderComponent
           ? {
               padding: 0,
+              // Allow header text to wrap (AG Grid sets white-space: nowrap by default)
+              whiteSpace: 'normal',
+              overflow: 'visible',
             }
           : undefined,
 
