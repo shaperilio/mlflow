@@ -396,7 +396,7 @@ export const ExperimentViewRunsTable = React.memo(
                 onGridReady={gridReadyHandler}
                 onSelectionChanged={onSelectionChange}
                 getRowHeight={rowHeightGetterFn}
-                headerHeight={EXPERIMENT_RUNS_TABLE_ROW_HEIGHT * 2}
+                headerHeight={isComparingRuns ? EXPERIMENT_RUNS_TABLE_ROW_HEIGHT : EXPERIMENT_RUNS_TABLE_ROW_HEIGHT * 2}
                 groupHeaderHeight={EXPERIMENT_RUNS_TABLE_ROW_HEIGHT}
                 onRowSelected={handleRowSelected}
                 suppressRowClickSelection
