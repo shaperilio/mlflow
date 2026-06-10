@@ -100,5 +100,3 @@ frontend rebuilds on restart; watch progress with `docker compose logs -f`.
 - Everything is driven by `deploy/.env`; there are no host-specific paths in any
   committed file (the repo is bind-mounted via a relative path).
 - To change the port or backend, edit `.env` and restart (`./start.sh`).
-- This serves a single frontend build; it intentionally omits the dual
-  branch/master comparison setup used in local development.
