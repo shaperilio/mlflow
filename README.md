@@ -1,3 +1,13 @@
+# 3.9.0-custom
+
+Customizations atop the 3.9.0 release:
+- Eye-friendly number format, based on [#23023](https://github.com/mlflow/mlflow/pull/23023).
+- Header column wrapping in table views.
+- [deploy](deploy/) directory to serve this frontend against an already-running backend; you can go
+  hog-wild on GUI experiments while keeping a completely functional server running elsewhere.
+
+What follows is the readme from 3.9.0.
+
 <h1 align="center" style="border-bottom: none">
     <a href="https://mlflow.org/">
         <img alt="MLflow logo" src="https://raw.githubusercontent.com/mlflow/mlflow/refs/heads/master/assets/logo.svg" width="200" />
