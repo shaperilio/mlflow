@@ -28,12 +28,11 @@ browser ──▶ nginx (this container, port $PORT) ──▶ your MLflow backe
 `.env` is **gitignored** — your backend URL never gets committed.
 
 ## Quick start
-
+On your server:
 ```bash
 # 0. Get the code (first time only)
-git clone <your-fork-url> mlflow
+git clone -b 3.9.0-custom --single-branch https://github.com/shaperilio/mlflow.git
 cd mlflow
-git checkout 3.9.0-custom
 cd deploy
 
 # 1. Configure (set BACKEND_URL to your MLflow server, choose a PORT)
@@ -57,6 +56,14 @@ docker compose logs -f
 
 When the log prints `Serving on port <PORT>`, open `http://<host>:<PORT>/`.
 Subsequent starts reuse the existing build and come up in seconds.
+
+NOTE: if you have to change `.env` while the container is running, you'll have to do this:
+```
+docker compose up -d --force-recreate
+#   …or if you installed the systemd service:
+#   sudo systemctl restart mlflow-frontend
+```
+from within the `deploy` directory.
 
 ## Run on boot (always-on)
 
