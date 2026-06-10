@@ -24,6 +24,24 @@ read_port() {
   printf '%s' "${p:-42069}"
 }
 
+# Remove the frontend build dir so the next start rebuilds it.
+# The build is created by root inside the container, so on a Linux bind mount
+# the host user normally can't delete it. Prefer deleting it from inside the
+# running container (as root); fall back to a plain rm, then sudo.
+# Usage: clear_build <host_path_to_build_dir>
+clear_build() {
+  local build_dir="$1"
+  [ -e "$build_dir" ] || return 0
+  if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "$CONTAINER_NAME"; then
+    docker exec "$CONTAINER_NAME" rm -rf /mlflow/mlflow/server/js/build
+  elif rm -rf "$build_dir" 2>/dev/null; then
+    :
+  else
+    echo "==> build/ is owned by the container; clearing it with sudo..."
+    sudo rm -rf "$build_dir"
+  fi
+}
+
 # Block until the frontend is actually serving on <port>, then print the URL.
 # Bails out (non-zero) with recent logs if the container crashes or restart-loops
 # instead of hanging for the whole timeout. Requires COMPOSE_CMD to be set.
