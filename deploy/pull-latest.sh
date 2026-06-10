@@ -12,6 +12,7 @@
 #   DEPLOY_BRANCH=some-branch DEPLOY_REMOTE=origin ./pull-latest.sh
 set -euo pipefail
 cd "$(dirname "$0")"
+source ./_lib.sh
 DEPLOY_DIR="$(pwd)"
 REPO_DIR="$(cd .. && pwd)"
 BRANCH="${DEPLOY_BRANCH:-3.9.0-custom}"
@@ -31,20 +32,15 @@ echo "==> Clearing the previous build so the frontend rebuilds..."
 rm -rf "${REPO_DIR}/mlflow/server/js/build"
 
 cd "$DEPLOY_DIR"
+resolve_compose || exit 1
 if command -v systemctl >/dev/null 2>&1 && \
    systemctl list-unit-files 2>/dev/null | grep -q '^mlflow-frontend\.service'; then
   echo "==> Restarting via systemd..."
   sudo systemctl restart mlflow-frontend
 else
   echo "==> Restarting the container..."
-  if docker compose version >/dev/null 2>&1; then
-    COMPOSE=(docker compose)
-  else
-    COMPOSE=(docker-compose)
-  fi
-  "${COMPOSE[@]}" up -d --build --force-recreate
+  "${COMPOSE_CMD[@]}" up -d --build --force-recreate
 fi
 
-echo ""
-echo "==> Done. The frontend is rebuilding inside the container (several minutes)."
-echo "    Watch it:  docker compose logs -f   (from the deploy/ directory)"
+# --- Wait until it's actually serving again, then print the URL ---
+wait_for_serving "$(read_port)"

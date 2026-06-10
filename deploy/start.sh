@@ -9,6 +9,7 @@
 #   ./start.sh --rebuild  Force a fresh frontend build (clears build/).
 set -euo pipefail
 cd "$(dirname "$0")"
+source ./_lib.sh
 
 # --- Require configuration ---
 if [ ! -f .env ]; then
@@ -42,15 +43,7 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 # --- Resolve the compose command (plugin vs legacy) ---
-if docker compose version >/dev/null 2>&1; then
-  COMPOSE=(docker compose)
-elif command -v docker-compose >/dev/null 2>&1; then
-  COMPOSE=(docker-compose)
-else
-  echo "ERROR: 'docker compose' is not available." >&2
-  echo "       Run ./install-docker.sh (Ubuntu) or install the compose plugin." >&2
-  exit 1
-fi
+resolve_compose || exit 1
 
 # --- Optional forced rebuild of the frontend ---
 if [ "${1:-}" = "--rebuild" ]; then
@@ -59,14 +52,7 @@ if [ "${1:-}" = "--rebuild" ]; then
 fi
 
 echo "==> Building image (if needed) and starting the container..."
-"${COMPOSE[@]}" up -d --build
+"${COMPOSE_CMD[@]}" up -d --build
 
-# --- Friendly summary ---
-PORT="$(grep -E '^PORT=' .env | head -1 | cut -d= -f2- | tr -d '[:space:]')"
-PORT="${PORT:-42069}"
-echo ""
-echo "Container is up."
-echo "  The first start builds the frontend (several minutes). Watch it with:"
-echo "      ${COMPOSE[*]} logs -f"
-echo "  Once the log shows 'Serving on port ${PORT}', the UI is available at:"
-echo "      http://$(hostname):${PORT}/"
+# --- Wait until it's actually serving, then print the URL ---
+wait_for_serving "$(read_port)"
