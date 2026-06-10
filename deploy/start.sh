@@ -48,7 +48,7 @@ resolve_compose || exit 1
 # --- Optional forced rebuild of the frontend ---
 if [ "${1:-}" = "--rebuild" ]; then
   echo "==> Forcing a frontend rebuild (clearing build/)..."
-  rm -rf ../mlflow/server/js/build
+  clear_build "$(cd .. && pwd)/mlflow/server/js/build"
 fi
 
 echo "==> Building image (if needed) and starting the container..."

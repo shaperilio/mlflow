@@ -29,7 +29,7 @@ echo "==> Hard-resetting to ${REMOTE}/${BRANCH} (local changes are discarded)...
 git reset --hard "${REMOTE}/${BRANCH}"
 
 echo "==> Clearing the previous build so the frontend rebuilds..."
-rm -rf "${REPO_DIR}/mlflow/server/js/build"
+clear_build "${REPO_DIR}/mlflow/server/js/build"
 
 cd "$DEPLOY_DIR"
 resolve_compose || exit 1
