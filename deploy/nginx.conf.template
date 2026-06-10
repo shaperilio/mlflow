@@ -1,0 +1,32 @@
+# nginx site template for the MLflow custom frontend.
+#
+# Rendered by entrypoint.sh using `envsubst`, which substitutes ONLY ${PORT}
+# and ${BACKEND_URL}. nginx's own runtime variables ($uri, $remote_addr,
+# $proxy_host, ...) are intentionally left untouched.
+server {
+    listen ${PORT};
+    server_name _;
+
+    root /mlflow/mlflow/server/js/build;
+    index index.html;
+
+    # Proxy all MLflow API / AJAX / GraphQL / artifact traffic to the backend.
+    location ~ ^/(ajax-api|api|graphql|get-artifact|model-versions|gateway)(/|$) {
+        proxy_pass ${BACKEND_URL};
+        proxy_set_header Host $proxy_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 300;
+    }
+
+    # The production build is compiled to be hosted under the /static-files/ path.
+    location /static-files/ {
+        alias /mlflow/mlflow/server/js/build/;
+        try_files $uri $uri/ =404;
+    }
+
+    # SPA fallback: let client-side routing handle unknown paths.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

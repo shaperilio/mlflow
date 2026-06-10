@@ -1,0 +1,22 @@
+# Compose file for the MLflow custom frontend (proxy mode).
+#
+# Configuration comes from deploy/.env (copy deploy/.env.example to start).
+# The repo root is bind-mounted at /mlflow so the container builds and serves
+# the current checkout -- no absolute host paths are baked in.
+services:
+  mlflow-frontend:
+    build: .
+    image: mlflow-frontend:local
+    container_name: mlflow-frontend
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: "${BACKEND_URL:?BACKEND_URL must be set in deploy/.env}"
+      PORT: "${PORT:-42069}"
+    ports:
+      - "${PORT:-42069}:${PORT:-42069}"
+    volumes:
+      # Bind-mount the repo root (the parent of this deploy/ directory) into the
+      # container. Relative on purpose: works wherever the repo is checked out.
+      - type: bind
+        source: ..
+        target: /mlflow

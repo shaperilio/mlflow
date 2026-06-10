@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# One-shot launcher for the MLflow custom frontend container.
+#
+# Ensures the Docker daemon is running, then builds the image (if needed)
+# and starts the container. Safe to re-run.
+#
+# Usage:
+#   ./start.sh            Start (or restart) the frontend container.
+#   ./start.sh --rebuild  Force a fresh frontend build (clears build/).
+set -euo pipefail
+cd "$(dirname "$0")"
+
+# --- Require configuration ---
+if [ ! -f .env ]; then
+  echo "ERROR: deploy/.env not found." >&2
+  echo "       Copy .env.example to .env and set BACKEND_URL, then re-run." >&2
+  exit 1
+fi
+
+# --- Ensure Docker is installed ---
+if ! command -v docker >/dev/null 2>&1; then
+  echo "ERROR: Docker is not installed." >&2
+  echo "       Run ./install-docker.sh (Ubuntu) or see README.md, then re-run." >&2
+  exit 1
+fi
+
+# --- Ensure the Docker daemon is running ---
+if ! docker info >/dev/null 2>&1; then
+  echo "==> Docker daemon is not responding; attempting to start it..."
+  if command -v systemctl >/dev/null 2>&1; then
+    sudo systemctl start docker
+  else
+    echo "ERROR: Cannot reach the Docker daemon and systemctl is unavailable." >&2
+    echo "       Start Docker manually, then re-run." >&2
+    exit 1
+  fi
+  for _ in $(seq 1 30); do
+    docker info >/dev/null 2>&1 && break
+    sleep 1
+  done
+  docker info >/dev/null 2>&1 || { echo "ERROR: Docker did not come up." >&2; exit 1; }
+fi
+
+# --- Resolve the compose command (plugin vs legacy) ---
+if docker compose version >/dev/null 2>&1; then
+  COMPOSE=(docker compose)
+elif command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE=(docker-compose)
+else
+  echo "ERROR: 'docker compose' is not available." >&2
+  echo "       Run ./install-docker.sh (Ubuntu) or install the compose plugin." >&2
+  exit 1
+fi
+
+# --- Optional forced rebuild of the frontend ---
+if [ "${1:-}" = "--rebuild" ]; then
+  echo "==> Forcing a frontend rebuild (clearing build/)..."
+  rm -rf ../mlflow/server/js/build
+fi
+
+echo "==> Building image (if needed) and starting the container..."
+"${COMPOSE[@]}" up -d --build
+
+# --- Friendly summary ---
+PORT="$(grep -E '^PORT=' .env | head -1 | cut -d= -f2- | tr -d '[:space:]')"
+PORT="${PORT:-42069}"
+echo ""
+echo "Container is up."
+echo "  The first start builds the frontend (several minutes). Watch it with:"
+echo "      ${COMPOSE[*]} logs -f"
+echo "  Once the log shows 'Serving on port ${PORT}', the UI is available at:"
+echo "      http://$(hostname):${PORT}/"
