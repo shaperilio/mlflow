@@ -12,6 +12,7 @@ import {
 import type { Theme } from '@emotion/react';
 import { FormattedMessage } from 'react-intl';
 import { Link } from '../../../../common/utils/RoutingUtils';
+import Utils from '../../../../common/utils/Utils';
 import Routes from '../../../routes';
 import { useExperimentIds } from '../../experiment-page/hooks/useExperimentIds';
 import type { RunsChartsRunData } from './RunsCharts.common';
