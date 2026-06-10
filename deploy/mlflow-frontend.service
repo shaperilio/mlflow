@@ -1,0 +1,21 @@
+# systemd unit template for the MLflow custom frontend.
+#
+# install-service.sh fills in the __DEPLOY_DIR__ and __COMPOSE__ placeholders
+# and installs this to /etc/systemd/system/mlflow-frontend.service.
+[Unit]
+Description=MLflow custom frontend (Docker Compose)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=__DEPLOY_DIR__
+ExecStart=__COMPOSE__ up -d --build
+ExecStop=__COMPOSE__ down
+# First boot builds the frontend inside the container; don't time out waiting.
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

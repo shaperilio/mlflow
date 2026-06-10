@@ -1,0 +1,2 @@
+# Local configuration -- contains the backend URL; never commit it.
+.env
