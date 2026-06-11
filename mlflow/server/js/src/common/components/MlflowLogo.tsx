@@ -1,4 +1,27 @@
+import { useState } from 'react';
+
+/**
+ * Sidebar logo. Renders a custom logo served at `/branding/logo.png` when one is configured for
+ * the deployment (see `LOGO_FILE` in deploy/.env); otherwise falls back to the default MLflow
+ * wordmark SVG below.
+ */
 export const MlflowLogo = (props: React.SVGProps<SVGSVGElement>) => {
+  const [useDefault, setUseDefault] = useState(false);
+
+  if (!useDefault) {
+    return (
+      <img
+        src="/branding/logo.png"
+        alt="MLflow"
+        onError={() => setUseDefault(true)}
+        // Inline style so this wins over the height the sidebar passes via the css prop (which is
+        // meant for the default SVG). The logo sits in the 190px left sidebar beside the collapse
+        // button, so it is bounded to a box that fits there while keeping its aspect ratio.
+        style={{ display: 'block', maxWidth: 140, maxHeight: 48, width: 'auto', height: 'auto' }}
+      />
+    );
+  }
+
   return (
     <svg width="109" height="40" viewBox="0 0 109 40" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
       <title>MLflow</title>

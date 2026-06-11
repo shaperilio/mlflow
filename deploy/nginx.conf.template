@@ -1,14 +1,20 @@
 # nginx site template for the MLflow custom frontend.
 #
-# Rendered by entrypoint.sh using `envsubst`, which substitutes ONLY ${PORT}
-# and ${BACKEND_URL}. nginx's own runtime variables ($uri, $remote_addr,
-# $proxy_host, ...) are intentionally left untouched.
+# Rendered by entrypoint.sh using `envsubst`, which substitutes ONLY ${PORT},
+# ${BACKEND_URL} and ${LOGO_FILE}. nginx's own runtime variables ($uri,
+# $remote_addr, $proxy_host, ...) are intentionally left untouched.
 server {
     listen ${PORT};
     server_name _;
 
     root /mlflow/mlflow/server/js/build;
     index index.html;
+
+    # Custom header logo (optional). Set LOGO_FILE in deploy/.env to a file placed in deploy/.
+    # When unset/missing this 404s and the frontend falls back to the default MLflow logo.
+    location = /branding/logo.png {
+        alias /mlflow/deploy/${LOGO_FILE};
+    }
 
     # Proxy all MLflow API / AJAX / GraphQL / artifact traffic to the backend.
     location ~ ^/(ajax-api|api|graphql|get-artifact|model-versions|gateway)(/|$) {
