@@ -180,6 +180,7 @@ export const getAdjustableAttributeColumns = (isComparingExperiments = false) =>
     ATTRIBUTE_COLUMN_LABELS.MODELS,
     ATTRIBUTE_COLUMN_LABELS.DATASET,
     ATTRIBUTE_COLUMN_LABELS.DESCRIPTION,
+    ATTRIBUTE_COLUMN_LABELS.DURATION,
   ];
 
   if (isComparingExperiments) {
@@ -286,6 +287,8 @@ export const useRunsColumnDefinitions = ({
       width: getActionsColumnWidth(isComparingRuns),
       maxWidth: getActionsColumnWidth(isComparingRuns),
       resizable: false,
+      lockPosition: true,
+      suppressMovable: true,
       suppressKeyboardEvent: RowActionsCellRendererSuppressKeyboardEvents,
     });
 
@@ -311,6 +314,8 @@ export const useRunsColumnDefinitions = ({
       initialWidth: isRunColumnDynamicSized ? undefined : RUN_NAME_COLUMN_WIDTH,
       flex: isRunColumnDynamicSized ? 1 : undefined,
       resizable: !isComparingRuns,
+      lockPosition: true,
+      suppressMovable: true,
       suppressKeyboardEvent: defaultKeyboardNavigationSuppressor,
     });
 
@@ -337,6 +342,8 @@ export const useRunsColumnDefinitions = ({
         'is-ordered-by': cellClassIsOrderedBy,
       },
       initialWidth: 150,
+      lockPosition: true,
+      suppressMovable: true,
     });
 
     // Datasets column - guarded by a feature flag
@@ -353,11 +360,13 @@ export const useRunsColumnDefinitions = ({
       suppressKeyboardEvent: DatasetsCellRendererSuppressKeyboardEvents,
     });
 
-    // Duration column
+    // Duration column (optional; toggled via the column selector)
     columns.push({
       headerName: ATTRIBUTE_COLUMN_LABELS.DURATION,
+      colId: makeCanonicalSortKey(COLUMN_TYPES.ATTRIBUTES, ATTRIBUTE_COLUMN_LABELS.DURATION),
       field: 'duration',
       initialWidth: 80,
+      initialHide: true,
     });
 
     // Experiment name column
@@ -614,6 +623,8 @@ export const EXPERIMENTS_DEFAULT_COLUMN_SETUP = {
   resizable: true,
   filter: true,
   suppressMenu: true,
-  suppressMovable: true,
+  // Columns are draggable to reorder. The frozen left columns (checkbox, run
+  // name, date) opt back out individually via suppressMovable/lockPosition.
+  suppressMovable: false,
   wrapHeaderText: true,
 };

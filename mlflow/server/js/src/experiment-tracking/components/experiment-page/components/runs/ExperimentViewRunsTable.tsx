@@ -1,4 +1,4 @@
-import type { CellClickedEvent, ColumnApi, GridApi, GridReadyEvent } from '@ag-grid-community/core';
+import type { CellClickedEvent, ColumnApi, ColumnResizedEvent, GridApi, GridReadyEvent } from '@ag-grid-community/core';
 import type { Theme } from '@emotion/react';
 import { type CSSObject, Interpolation } from '@emotion/react';
 import cx from 'classnames';
@@ -262,6 +262,52 @@ export const ExperimentViewRunsTable = React.memo(
       }
     }, [gridApi, rowsData, isLoading, moreRunsAvailable, loadMoreRunsFunc, gridSizeHandler]);
 
+    // --- Persist user-defined column order + widths (per experiment, in localStorage UI state) ---
+
+    // Latest persisted layout, read inside the apply-effect without making it a dependency, so
+    // re-applying happens when the column set changes -- not on every save we make ourselves.
+    const columnLayoutRef = useRef<{ columnOrder?: string[]; columnWidths?: Record<string, number> }>({});
+    columnLayoutRef.current = { columnOrder: uiState.columnOrder, columnWidths: uiState.columnWidths };
+
+    const persistColumnLayout = useCallback(() => {
+      if (!columnApi || isComparingRuns) {
+        return;
+      }
+      const columnState = columnApi.getColumnState();
+      const columnOrder = columnState.map((col) => col.colId).filter((id): id is string => Boolean(id));
+      const columnWidths: Record<string, number> = {};
+      columnState.forEach((col) => {
+        if (col.colId && typeof col.width === 'number') {
+          columnWidths[col.colId] = col.width;
+        }
+      });
+      updateUIState((current) => ({ ...current, columnOrder, columnWidths }));
+    }, [columnApi, isComparingRuns, updateUIState]);
+
+    // Only persist widths on a finished, user-initiated resize (ignore API/auto sizing).
+    const handleColumnResized = useCallback(
+      (event: ColumnResizedEvent) => {
+        if (event.finished && event.source === 'uiColumnDragged') {
+          persistColumnLayout();
+        }
+      },
+      [persistColumnLayout],
+    );
+
+    // Apply the persisted order + widths whenever the grid or its column set changes.
+    useEffect(() => {
+      if (!columnApi || isComparingRuns) {
+        return;
+      }
+      const { columnOrder, columnWidths } = columnLayoutRef.current;
+      if (!columnOrder?.length && isEmpty(columnWidths)) {
+        return;
+      }
+      const columnState = (columnOrder ?? []).map((colId) => ({ colId, width: columnWidths?.[colId] }));
+      // No defaultState: leave visibility/sort/pin untouched (visibility is driven by selectedColumns).
+      columnApi.applyColumnState({ state: columnState, applyOrder: true });
+    }, [columnApi, columnDefs, isComparingRuns]);
+
     // Count all columns available for selection
     const allAvailableColumnsCount = useMemo(() => {
       const attributeColumnCount = getAdjustableAttributeColumns(experiments.length > 1).length;
@@ -394,6 +440,8 @@ export const ExperimentViewRunsTable = React.memo(
                 columnDefs={columnDefs}
                 rowSelection="multiple"
                 onGridReady={gridReadyHandler}
+                onDragStopped={persistColumnLayout}
+                onColumnResized={handleColumnResized}
                 onSelectionChanged={onSelectionChange}
                 getRowHeight={rowHeightGetterFn}
                 headerHeight={isComparingRuns ? EXPERIMENT_RUNS_TABLE_ROW_HEIGHT : EXPERIMENT_RUNS_TABLE_ROW_HEIGHT * 2}
