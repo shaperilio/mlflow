@@ -90,6 +90,43 @@ const defaultKeyboardNavigationSuppressor = ({ event }: SuppressKeyboardEventPar
   event.key === 'Tab' && event.target instanceof HTMLElement && event.target.classList.contains('ag-cell');
 
 /**
+ * AG Grid comparator for numeric parameter columns (param values are stored as strings,
+ * so the default string sort orders them lexicographically). Pinned runs stay on top,
+ * values sort numerically, and blanks / "-" sink to the bottom regardless of direction.
+ */
+const numericParamComparator = (
+  valueA: unknown,
+  valueB: unknown,
+  nodeA?: { data?: RunRowType },
+  nodeB?: { data?: RunRowType },
+  isDescending?: boolean,
+) => {
+  const aPinned = Boolean(nodeA?.data?.pinned);
+  const bPinned = Boolean(nodeB?.data?.pinned);
+  if (aPinned !== bPinned) {
+    // Pinned rows always lead, regardless of sort direction (AG Grid flips the result for desc).
+    return (aPinned ? -1 : 1) * (isDescending ? -1 : 1);
+  }
+  const parse = (v: unknown): number | null => {
+    if (typeof v === 'number') return isNaN(v) ? null : v;
+    if (typeof v === 'string') {
+      const trimmed = v.trim();
+      if (trimmed !== '' && trimmed !== '-') {
+        const n = Number(trimmed);
+        return isNaN(n) ? null : n;
+      }
+    }
+    return null;
+  };
+  const a = parse(valueA);
+  const b = parse(valueB);
+  if (a === null && b === null) return 0;
+  if (a === null) return isDescending ? -1 : 1;
+  if (b === null) return isDescending ? 1 : -1;
+  return a - b;
+};
+
+/**
  * Functions returns all framework components to be used by agGrid
  */
 export const getFrameworkComponents = () => ({
@@ -495,6 +532,7 @@ export const useRunsColumnDefinitions = ({
             headerComponentParams: {
               canonicalSortKey,
               headerAnnotation: formatSpec?.headerAnnotation,
+              clientSortable: true,
             },
             valueFormatter: customMetricColumnDef?.valueFormatter ?? (formatSpec ? ({ value }) => formatSpec.format(value) : undefined),
             cellRendererSelector: ({ data: { groupParentInfo } }) =>
@@ -538,9 +576,13 @@ export const useRunsColumnDefinitions = ({
             initialHide: true,
             initialWidth: 100,
             sortable: true,
+            // Numeric params sort client-side (the backend sorts them as strings); other params
+            // keep the default server-side sort.
+            ...(isNumericColumn && { comparator: numericParamComparator }),
             headerComponentParams: {
               canonicalSortKey,
               headerAnnotation: numericFormatSpec?.headerAnnotation,
+              clientSortable: true,
             },
             ...(numericFormatSpec && {
               valueFormatter: ({ value }) => {
@@ -573,6 +615,11 @@ export const useRunsColumnDefinitions = ({
             headerTooltip: getQualifiedEntityName(COLUMN_TYPES.TAGS, tagKey),
             field: createTagFieldName(tagKey),
             tooltipField: createTagFieldName(tagKey),
+            sortable: true,
+            headerComponentParams: {
+              canonicalSortKey,
+              clientSortable: true,
+            },
           };
         }),
       });

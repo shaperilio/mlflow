@@ -1,4 +1,11 @@
-import type { CellClickedEvent, ColumnApi, ColumnResizedEvent, GridApi, GridReadyEvent } from '@ag-grid-community/core';
+import type {
+  CellClickedEvent,
+  ColumnApi,
+  ColumnResizedEvent,
+  GridApi,
+  GridReadyEvent,
+  PostSortRowsParams,
+} from '@ag-grid-community/core';
 import type { Theme } from '@emotion/react';
 import { type CSSObject, Interpolation } from '@emotion/react';
 import cx from 'classnames';
@@ -336,6 +343,54 @@ export const ExperimentViewRunsTable = React.memo(
       columnApi.applyColumnState({ state: columnState, applyOrder: true });
     }, [columnApi, columnDefs, isComparingRuns]);
 
+    // Numeric param columns are sorted client-side (the backend sorts param values
+    // lexicographically since they're stored as strings). This is kept in local state, fully
+    // decoupled from the server search facets, so sorting/toggling never re-fetches.
+    const [clientSort, setClientSort] = useState<{ colId: string; asc: boolean } | null>(null);
+
+    // Drive AG Grid's own sort (using the column's numeric comparator) from the local clientSort
+    // state, and refresh the headers so the sort arrow updates. When cleared, drop AG Grid's sort
+    // so the server-provided order stands.
+    useEffect(() => {
+      if (!columnApi) {
+        return;
+      }
+      // defaultState clears the sort on every other column so only the target carries one
+      // (and so switching/clearing the client sort doesn't leave a stale AG Grid sort behind).
+      if (clientSort) {
+        columnApi.applyColumnState({
+          state: [{ colId: clientSort.colId, sort: clientSort.asc ? 'asc' : 'desc' }],
+          defaultState: { sort: null },
+        });
+      } else {
+        columnApi.applyColumnState({ defaultState: { sort: null } });
+      }
+      gridApi?.refreshHeader();
+    }, [columnApi, gridApi, clientSort, columnDefs]);
+
+    // Client-side sorting is only correct once every run is loaded, so auto-load the remaining
+    // pages while a client sort is active. This uses the existing pagination (pageToken) and does
+    // not change the search facets, so toggling direction never triggers a re-fetch.
+    useEffect(() => {
+      if (clientSort && moreRunsAvailable && !isLoading) {
+        loadMoreRunsFunc();
+      }
+    }, [clientSort, moreRunsAvailable, isLoading, loadMoreRunsFunc]);
+
+    // Keep pinned runs at the top regardless of the (client-side) sort order. Runs after every
+    // sort; a no-op for the server-ordered view where pinned rows already lead.
+    const postSortRows = useCallback((params: PostSortRowsParams) => {
+      const { nodes } = params;
+      let insertAt = 0;
+      for (let i = 0; i < nodes.length; i += 1) {
+        if (nodes[i]?.data?.pinned) {
+          const [pinnedNode] = nodes.splice(i, 1);
+          nodes.splice(insertAt, 0, pinnedNode);
+          insertAt += 1;
+        }
+      }
+    }, []);
+
     // Count all columns available for selection
     const allAvailableColumnsCount = useMemo(() => {
       const attributeColumnCount = getAdjustableAttributeColumns(experiments.length > 1).length;
@@ -424,7 +479,10 @@ export const ExperimentViewRunsTable = React.memo(
     const displayStatusBar = !runListHidden;
     const displayEmptyState = rowsData.length < 1 && !isLoading && displayRunsTable;
 
-    const tableContext = useMemo(() => ({ orderByAsc, orderByKey }), [orderByAsc, orderByKey]);
+    const tableContext = useMemo(
+      () => ({ orderByAsc, orderByKey, clientSort, setClientSort }),
+      [orderByAsc, orderByKey, clientSort],
+    );
 
     const { cellMouseOverHandler, cellMouseOutHandler } = useRunsHighlightTableRow(containerElement);
 
@@ -468,6 +526,7 @@ export const ExperimentViewRunsTable = React.memo(
                 columnDefs={columnDefs}
                 rowSelection="multiple"
                 onGridReady={gridReadyHandler}
+                postSortRows={postSortRows}
                 onDragStopped={persistColumnLayout}
                 onColumnResized={handleColumnResized}
                 onSelectionChanged={onSelectionChange}
