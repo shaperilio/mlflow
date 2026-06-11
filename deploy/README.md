@@ -16,7 +16,7 @@ browser ──▶ nginx (this container, port $PORT) ──▶ your MLflow backe
 |------|---------|
 | `Dockerfile` | Image with Node + nginx that builds and serves the frontend |
 | `entrypoint.sh` | Builds the frontend (if needed) and starts nginx |
-| `nginx.conf.template` | nginx site; `${PORT}`/`${BACKEND_URL}` filled in at runtime |
+| `nginx.conf.template` | nginx site; `${PORT}`/`${BACKEND_URL}`/`${LOGO_FILE}` filled in at runtime |
 | `docker-compose.yml` | Service definition; bind-mounts the repo, reads `.env` |
 | `.env.example` | Template for your local config (copy to `.env`) |
 | `start.sh` | One-shot launcher: starts Docker if needed, brings the container up, waits until it's serving |
@@ -99,6 +99,24 @@ local changes — nothing is developed on the server), clears the old build, and
 restarts the container (via systemd if installed, otherwise Compose). Like
 `start.sh`, it waits for the rebuilt frontend to come up and prints the URL once
 it's serving (and shows the logs if the build fails).
+
+## Custom logo
+
+Replace the MLflow wordmark in the header with your own logo:
+
+1. Put the image file in this `deploy/` directory (PNG with a transparent
+   background works best; it's scaled to the header height, so a wide/horizontal
+   logo looks best).
+2. Set `LOGO_FILE` in `.env` to its filename, e.g. `LOGO_FILE=custom_logo.png`.
+3. Restart so the change is picked up:
+
+   ```bash
+   docker compose up -d --force-recreate   # or: sudo systemctl restart mlflow-frontend
+   ```
+
+nginx then serves it at `/branding/logo.png` and the header uses it. Leave
+`LOGO_FILE` empty (or remove the file) to fall back to the default MLflow logo.
+No rebuild is needed — swapping the logo is just a file change plus a restart.
 
 ## Requirements
 

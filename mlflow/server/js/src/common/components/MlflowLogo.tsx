@@ -1,4 +1,26 @@
+import { useState } from 'react';
+
+/**
+ * Header logo. Renders a custom logo served at `/branding/logo.png` when one is configured for
+ * the deployment (see `LOGO_FILE` in deploy/.env); otherwise falls back to the default MLflow
+ * wordmark SVG below.
+ */
 export const MlflowLogo = (props: React.SVGProps<SVGSVGElement>) => {
+  const [useDefault, setUseDefault] = useState(false);
+
+  if (!useDefault) {
+    return (
+      <img
+        src="/branding/logo.png"
+        alt="MLflow"
+        onError={() => setUseDefault(true)}
+        // Inline style so this wins over the height the header passes via the css prop (which is
+        // meant for the default SVG). Auto width keeps the aspect ratio; the header grows to fit.
+        style={{ height: 64, width: 'auto', display: 'block' }}
+      />
+    );
+  }
+
   return (
     <svg width="109" height="40" viewBox="0 0 109 40" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
       <title>MLflow</title>

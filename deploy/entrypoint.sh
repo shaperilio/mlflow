@@ -13,10 +13,15 @@ JS_DIR="/mlflow/mlflow/server/js"
 
 : "${BACKEND_URL:?BACKEND_URL is required (set it in deploy/.env)}"
 : "${PORT:=42069}"
+# Optional custom header logo (a file in deploy/). When unset, point the alias at a file that
+# does not exist so the /branding/logo.png request 404s and the frontend uses the default logo.
+: "${LOGO_FILE:=}"
+LOGO_FILE="${LOGO_FILE:-.no-logo}"
 
 echo "==> MLflow frontend starting"
 echo "    backend : ${BACKEND_URL}"
 echo "    port    : ${PORT}"
+echo "    logo    : ${LOGO_FILE}"
 
 if [ ! -d "$JS_DIR" ]; then
   echo "ERROR: $JS_DIR not found. Is the repo bind-mounted at /mlflow?" >&2
@@ -40,10 +45,10 @@ else
   echo "==> Existing build found; serving it as-is."
 fi
 
-# 3. Render the nginx config (only PORT and BACKEND_URL are substituted).
+# 3. Render the nginx config (only PORT, BACKEND_URL and LOGO_FILE are substituted).
 echo "==> Configuring nginx..."
-export PORT BACKEND_URL
-envsubst '${PORT} ${BACKEND_URL}' \
+export PORT BACKEND_URL LOGO_FILE
+envsubst '${PORT} ${BACKEND_URL} ${LOGO_FILE}' \
   < /etc/nginx/mlflow.conf.template \
   > /etc/nginx/sites-available/mlflow
 ln -sf /etc/nginx/sites-available/mlflow /etc/nginx/sites-enabled/mlflow

@@ -12,6 +12,7 @@ services:
     environment:
       BACKEND_URL: "${BACKEND_URL:?BACKEND_URL must be set in deploy/.env}"
       PORT: "${PORT:-42069}"
+      LOGO_FILE: "${LOGO_FILE:-}"
     ports:
       - "${PORT:-42069}:${PORT:-42069}"
     volumes:
