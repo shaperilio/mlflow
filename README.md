@@ -6,6 +6,11 @@ Customizations atop the 3.9.0 release:
 - In table view, columns are reordable by dragging, and both column size and position persist just
   like column selection does.
 - "Duration" column is hidable.
+- Parameters that look like numbers are sorted as such, instead of as strings. Note: this would be
+  better implemented as a backend fix to handle pagination (and maybe querying), but this is
+  front-end only, so it's done on the browser. That has the advantage of being extremely quick; as
+  such *all* parameter, tag, and metric sorting on this branch is done in the browser (other
+  attributes still sort server-side).
 - [deploy](deploy/) directory to serve this frontend against an already-running backend; you can go
   hog-wild on GUI experiments while keeping a completely functional server running elsewhere.
 
