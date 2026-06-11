@@ -303,7 +303,35 @@ export const ExperimentViewRunsTable = React.memo(
       if (!columnOrder?.length && isEmpty(columnWidths)) {
         return;
       }
-      const columnState = (columnOrder ?? []).map((colId) => ({ colId, width: columnWidths?.[colId] }));
+      const currentState = columnApi.getColumnState();
+      const savedPositions = new Map((columnOrder ?? []).map((colId, index) => [colId, index]));
+
+      // Pinned (frozen) columns -- checkbox, run name, date -- always lead and are never
+      // reordered by persistence. Everything else is ordered by its saved position, with
+      // newly-appeared columns kept in their current order at the end.
+      const pinnedIds = currentState
+        .filter((col) => col.pinned)
+        .map((col) => col.colId)
+        .filter((colId): colId is string => Boolean(colId));
+      const pinnedSet = new Set(pinnedIds);
+
+      const movableIds = currentState
+        .map((col) => col.colId)
+        .filter((colId): colId is string => Boolean(colId) && !pinnedSet.has(colId))
+        .sort(
+          (a, b) =>
+            (savedPositions.has(a) ? (savedPositions.get(a) as number) : Number.MAX_SAFE_INTEGER) -
+            (savedPositions.has(b) ? (savedPositions.get(b) as number) : Number.MAX_SAFE_INTEGER),
+        );
+
+      const columnState: { colId: string; width?: number }[] = [...pinnedIds, ...movableIds].map((colId) => {
+        // Restore a width only for resizable columns that have a saved one; otherwise omit the
+        // width key so applyColumnState leaves fixed-width columns (e.g. the actions column) alone.
+        const targetColumn = columnApi.getColumn(colId);
+        const isResizable = Boolean(targetColumn) && targetColumn?.getColDef()?.resizable !== false;
+        const savedWidth = columnWidths?.[colId];
+        return isResizable && typeof savedWidth === 'number' ? { colId, width: savedWidth } : { colId };
+      });
       // No defaultState: leave visibility/sort/pin untouched (visibility is driven by selectedColumns).
       columnApi.applyColumnState({ state: columnState, applyOrder: true });
     }, [columnApi, columnDefs, isComparingRuns]);
