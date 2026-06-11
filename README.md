@@ -3,6 +3,9 @@
 Customizations atop the 3.9.0 release:
 - Eye-friendly number format, based on [#23023](https://github.com/mlflow/mlflow/pull/23023).
 - Header column wrapping in table views.
+- In table view, columns are reordable by dragging, and both column size and position persist just
+  like column selection does.
+- "Duration" column is hidable.
 - [deploy](deploy/) directory to serve this frontend against an already-running backend; you can go
   hog-wild on GUI experiments while keeping a completely functional server running elsewhere.
 

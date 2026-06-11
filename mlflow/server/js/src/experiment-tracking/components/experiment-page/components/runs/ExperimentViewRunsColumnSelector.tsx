@@ -52,6 +52,7 @@ const getAttributeColumns = (isComparing: boolean) => {
     ATTRIBUTE_COLUMN_LABELS.VERSION,
     ATTRIBUTE_COLUMN_LABELS.MODELS,
     ATTRIBUTE_COLUMN_LABELS.DESCRIPTION,
+    ATTRIBUTE_COLUMN_LABELS.DURATION,
   ];
 
   if (isComparing) {

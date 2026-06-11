@@ -180,6 +180,7 @@ export const getAdjustableAttributeColumns = (isComparingExperiments = false) =>
     ATTRIBUTE_COLUMN_LABELS.MODELS,
     ATTRIBUTE_COLUMN_LABELS.DATASET,
     ATTRIBUTE_COLUMN_LABELS.DESCRIPTION,
+    ATTRIBUTE_COLUMN_LABELS.DURATION,
   ];
 
   if (isComparingExperiments) {
@@ -363,11 +364,13 @@ export const useRunsColumnDefinitions = ({
       suppressKeyboardEvent: DatasetsCellRendererSuppressKeyboardEvents,
     });
 
-    // Duration column
+    // Duration column (optional; toggled via the column selector)
     columns.push({
       headerName: ATTRIBUTE_COLUMN_LABELS.DURATION,
+      colId: makeCanonicalSortKey(COLUMN_TYPES.ATTRIBUTES, ATTRIBUTE_COLUMN_LABELS.DURATION),
       field: 'duration',
       initialWidth: 80,
+      initialHide: true,
     });
 
     // Experiment name column
