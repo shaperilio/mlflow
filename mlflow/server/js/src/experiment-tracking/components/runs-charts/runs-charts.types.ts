@@ -40,6 +40,13 @@ export type SerializedRunsChartsCardConfigCard = RunsChartsCardConfig;
 const dataTraceMetricsContainMultipleEpochs = (dataTrace: RunsChartsRunData, metricKey: string): boolean =>
   Boolean(dataTrace.metrics?.[metricKey]?.step >= MIN_NUMBER_OF_STEP_FOR_LINE_COMPARISON);
 
+// Natural (alphanumeric) string comparator, so e.g. "GPU 2" sorts before "GPU 10"
+// instead of lexicographically ("GPU 10" before "GPU 2").
+const naturalCompare = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+
+// Built-in sections that should always lead, in this order, when sections aren't user-reordered.
+const BUILT_IN_SECTION_ORDER = [MLFLOW_MODEL_METRIC_NAME, MLFLOW_SYSTEM_METRIC_NAME];
+
 /**
  * Main class used for represent a single configured chart card with its type, configuration options etc.
  * Meant to be extended by various chart type classes with `type` field being frozen to a single value.
@@ -199,7 +206,7 @@ export abstract class RunsChartsCardConfig {
     });
 
     Array.from(metricsToRender)
-      .sort()
+      .sort(naturalCompare)
       .forEach((metricsKey) => {
         // If the metric has multiple epochs, add a line chart. Otherwise, add a bar chart
         const anyRunHasMultipleEpochs = runsData.some((dataTrace) =>
@@ -218,7 +225,7 @@ export abstract class RunsChartsCardConfig {
       });
 
     Array.from(imagesToRender)
-      .sort()
+      .sort(naturalCompare)
       .forEach((imageKey) => {
         const chartType = RunsChartType.IMAGE;
         const sectionId = sectionName2Uuid[RunsChartsCardConfig.extractChartSectionName(imageKey)];
@@ -239,11 +246,12 @@ export abstract class RunsChartsCardConfig {
     }
     const rest = Object.keys(sectionName2Uuid)
       .filter((sectionName) => sectionName !== MLFLOW_MODEL_METRIC_NAME && sectionName !== MLFLOW_SYSTEM_METRIC_NAME)
-      .sort();
+      .sort(naturalCompare);
 
     const sortedSectionNames = [
+      // Built-in sections always lead, in their fixed order; the rest follow in natural order.
+      ...BUILT_IN_SECTION_ORDER.filter((name) => enabledSectionNames.includes(name)),
       ...rest,
-      ...[MLFLOW_MODEL_METRIC_NAME, MLFLOW_SYSTEM_METRIC_NAME].filter((name) => enabledSectionNames.includes(name)),
     ];
 
     // Create section configs
@@ -334,7 +342,7 @@ export abstract class RunsChartsCardConfig {
           // If section has not been reordered, then insert alphabetically
           const insertIndex = resultChartSet.findIndex((chart) => {
             const chartImageKeys = (chart as RunsChartsImageCardConfig).imageKeys;
-            return chartImageKeys ? chartImageKeys[0]?.localeCompare(imageKey) >= 0 : false;
+            return chartImageKeys && chartImageKeys[0] ? naturalCompare(chartImageKeys[0], imageKey) >= 0 : false;
           });
           resultChartSet.splice(insertIndex, 0, newChartConfig);
         }
@@ -392,7 +400,7 @@ export abstract class RunsChartsCardConfig {
           // If section has not been reordered, then insert alphabetically
           const insertIndex = resultChartSet.findIndex((chart) => {
             const chartMetricKey = (chart as RunsChartsBarCardConfig).metricKey;
-            return chartMetricKey ? chartMetricKey.localeCompare(metricKey) >= 0 : false;
+            return chartMetricKey ? naturalCompare(chartMetricKey, metricKey) >= 0 : false;
           });
           resultChartSet.splice(insertIndex, 0, newChartConfig);
         }
@@ -432,16 +440,21 @@ export abstract class RunsChartsCardConfig {
     });
 
     if (!isAccordionReordered) {
-      // If sections are in order (not been reordered), then sort alphabetically
+      // Not user-reordered: built-in sections lead (fixed order), the rest follow in natural order.
+      const builtIns = BUILT_IN_SECTION_ORDER.map((name) =>
+        resultSectionSet.find((section) => section.name === name),
+      ).filter((section): section is ChartSectionConfig => !isNil(section));
       const rest = resultSectionSet.filter(
         (section) => section.name !== MLFLOW_MODEL_METRIC_NAME && section.name !== MLFLOW_SYSTEM_METRIC_NAME,
       );
-      rest.sort((a, b) => a.name.localeCompare(b.name));
-      resultSectionSet = [
-        ...rest,
-        compareRunSections[compareRunSections.length - 2],
-        compareRunSections[compareRunSections.length - 1],
-      ].filter((section) => !isNil(section));
+      rest.sort((a, b) => naturalCompare(a.name, b.name));
+      const sortedSectionSet = [...builtIns, ...rest];
+      // Flag an update when the order actually changes so the new order is persisted -- the caller
+      // discards the result otherwise (e.g. on reload of an experiment with no new metrics).
+      if (sortedSectionSet.some((section, index) => section.uuid !== resultSectionSet[index]?.uuid)) {
+        isResultUpdated = true;
+      }
+      resultSectionSet = sortedSectionSet;
     }
 
     return { resultChartSet, resultSectionSet, isResultUpdated };
