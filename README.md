@@ -12,6 +12,7 @@ Customizations atop the 3.9.0 release:
   such *all* parameter, tag, and metric sorting on this branch is done in the browser (other
   attributes still sort server-side).
 - Custom logo, with fallback to original MLFlow logo.
+- Better sorting of chart sections.
 - [deploy](deploy/) directory to serve this frontend against an already-running backend; you can go
   hog-wild on GUI experiments while keeping a completely functional server running elsewhere.
 
