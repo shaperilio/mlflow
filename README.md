@@ -13,6 +13,8 @@ Customizations atop the 3.9.0 release:
   attributes still sort server-side).
 - Custom logo, with fallback to original MLFlow logo.
 - Better sorting of chart sections.
+- Show a warning when two metrics of different lengths are plotted together (previously, the longer
+  metric was silently truncated).
 - [deploy](deploy/) directory to serve this frontend against an already-running backend; you can go
   hog-wild on GUI experiments while keeping a completely functional server running elsewhere.
 
