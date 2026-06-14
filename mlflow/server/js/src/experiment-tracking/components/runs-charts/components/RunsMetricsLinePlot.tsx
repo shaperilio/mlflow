@@ -1,4 +1,4 @@
-import { useDesignSystemTheme } from '@databricks/design-system';
+import { LegacyTooltip, WarningIcon, useDesignSystemTheme } from '@databricks/design-system';
 import { isEmpty, isEqual, isNumber, maxBy, minBy } from 'lodash';
 import type { Config, Dash, Data as PlotlyData, Layout, LayoutAxis } from 'plotly.js';
 import { type Figure } from 'react-plotly.js';
@@ -650,6 +650,39 @@ export const RunsMetricsLinePlot = React.memo(
 
     const plotDataWithBands = useMemo(() => [...bandsData, ...plotData], [plotData, bandsData]);
 
+    // Metric-vs-metric mode pairs each series with the X metric by step and keeps only the steps they
+    // share (see prepareXAxisDataForMetricType / orderBySteps). That silently drops the non-overlapping
+    // points of the longer history, so detect any mismatch and surface a warning rather than hiding data.
+    const truncationWarning = useMemo(() => {
+      if (xAxisKey !== RunsChartsLineChartXAxisType.METRIC || !selectedXAxisMetricKey) {
+        return null;
+      }
+      const metricKeys = (selectedMetricKeys ?? [metricKey]).filter((key): key is string => Boolean(key));
+      const truncatedMetrics = new Set<string>();
+      for (const runEntry of runsData) {
+        const xHistory = runEntry.metricsHistory?.[selectedXAxisMetricKey];
+        if (!xHistory?.length) {
+          continue;
+        }
+        const xSteps = new Set(xHistory.map(({ step }) => step));
+        for (const key of metricKeys) {
+          const yHistory = runEntry.metricsHistory?.[key];
+          if (!yHistory?.length) {
+            continue;
+          }
+          const ySteps = yHistory.map(({ step }) => step);
+          const sharedCount = ySteps.filter((step) => xSteps.has(step)).length;
+          // A mismatch in either direction means points were dropped to the common steps.
+          if (sharedCount < ySteps.length || sharedCount < xSteps.size) {
+            truncatedMetrics.add(key);
+          }
+        }
+      }
+      return truncatedMetrics.size > 0
+        ? { xMetric: selectedXAxisMetricKey, metrics: Array.from(truncatedMetrics) }
+        : null;
+    }, [xAxisKey, selectedXAxisMetricKey, selectedMetricKeys, metricKey, runsData]);
+
     const { layoutHeight, layoutWidth, setContainerDiv, containerDiv, isDynamicSizeSupported } = useDynamicPlotSize();
 
     const { formatMessage } = useIntl();
@@ -831,6 +864,29 @@ export const RunsMetricsLinePlot = React.memo(
         className={className}
         ref={setContainerDiv}
       >
+        {truncationWarning && (
+          <LegacyTooltip
+            title={`Showing only the steps shared by "${truncationWarning.xMetric}" and ${truncationWarning.metrics
+              .map((metric) => `"${metric}"`)
+              .join(', ')}. Points logged at steps the paired metrics don't share are hidden.`}
+          >
+            <div
+              css={{
+                position: 'absolute',
+                top: theme.spacing.xs,
+                left: theme.spacing.xs,
+                zIndex: 1,
+                display: 'flex',
+                // The chart wrapper sets font-size: 0; restore one so the (1em-sized) icon is visible.
+                fontSize: 16,
+                color: theme.colors.textValidationWarning,
+                cursor: 'help',
+              }}
+            >
+              <WarningIcon />
+            </div>
+          </LegacyTooltip>
+        )}
         <LazyPlot
           data={plotDataWithBands}
           useResizeHandler={!isDynamicSizeSupported}
