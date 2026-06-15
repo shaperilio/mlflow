@@ -38,15 +38,23 @@ import type { RunsChartsGlobalLineChartConfig } from '../../../experiment-page/m
 import { useLineChartGlobalConfig } from '../hooks/useLineChartGlobalConfig';
 
 const getV2ChartTitle = (cardConfig: RunsChartsLineCardConfig): string => {
-  if (shouldEnableChartExpressions() && cardConfig.yAxisKey === RunsChartsLineChartYAxisType.EXPRESSION) {
-    const expressions = cardConfig.yAxisExpressions?.map((exp) => exp.expression) || [];
-    return expressions?.join(' vs ') || '';
-  }
-  if (!cardConfig.selectedMetricKeys || cardConfig.selectedMetricKeys.length === 0) {
-    return cardConfig.metricKey;
-  }
+  const leftNames =
+    shouldEnableChartExpressions() && cardConfig.yAxisKey === RunsChartsLineChartYAxisType.EXPRESSION
+      ? cardConfig.yAxisExpressions?.map((exp) => exp.expression) ?? []
+      : cardConfig.selectedMetricKeys?.length
+        ? cardConfig.selectedMetricKeys
+        : cardConfig.metricKey
+          ? [cardConfig.metricKey]
+          : [];
+  // Include the second (right-hand) axis metrics in the title too.
+  const rightNames = cardConfig.showSecondYAxis ? cardConfig.selectedMetricKeysRight ?? [] : [];
 
-  return cardConfig.selectedMetricKeys.join(' vs ');
+  // When a right axis is in play, spell out which metrics live on which axis; otherwise keep the
+  // plain "a vs b" title used by single-axis charts.
+  if (rightNames.length > 0) {
+    return `Left: ${leftNames.join(', ')}; Right: ${rightNames.join(', ')}`;
+  }
+  return leftNames.join(' vs ');
 };
 
 export interface RunsChartsLineChartCardProps
@@ -143,8 +151,9 @@ export const RunsChartsLineChartCard = ({
     };
     const yAxisKeys = getYAxisKeys(config);
     const xAxisKeys = !selectedXAxisMetricKey ? [] : [selectedXAxisMetricKey];
+    const rightAxisKeys = config.showSecondYAxis ? config.selectedMetricKeysRight ?? [] : [];
 
-    return yAxisKeys.concat(xAxisKeys);
+    return uniq(yAxisKeys.concat(xAxisKeys, rightAxisKeys));
   }, [config, selectedXAxisMetricKey]);
 
   const { setTooltip, resetTooltip, destroyTooltip, selectedRunUuid } = useRunsChartsTooltip(
@@ -326,6 +335,10 @@ export const RunsChartsLineChartCard = ({
           xAxisScaleType={config.xAxisScaleType}
           yAxisKey={config.yAxisKey}
           yAxisExpressions={config.yAxisExpressions}
+          showSecondYAxis={config.showSecondYAxis}
+          selectedMetricKeysRight={config.selectedMetricKeysRight}
+          scaleTypeRight={config.scaleTypeRight}
+          rangeRight={config.rangeRight}
           selectedXAxisMetricKey={selectedXAxisMetricKey}
           lineSmoothness={lineSmoothness}
           useDefaultHoverBox={false}

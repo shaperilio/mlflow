@@ -99,8 +99,12 @@ export const RunsMultipleTracesTooltipBody = ({ hoverData }: { hoverData: RunsCo
               </span>
             </>
           )}
-          {tooltipLegendItems.map(({ displayName, color, uuid, value, dashStyle }) => (
+          {tooltipLegendItems.map(({ displayName, color, uuid, value, dashStyle, formatSpec: itemFormatSpec, metricKey }, idx) => (
             <React.Fragment key={uuid}>
+              {/* Blank spacer row between metric groups (incl. the left/right axis boundary). */}
+              {idx > 0 && metricKey !== tooltipLegendItems[idx - 1]?.metricKey && (
+                <div css={{ gridColumn: '1 / -1', height: theme.spacing.sm }} />
+              )}
               <TraceLabelColorIndicator color={color || 'transparent'} dashStyle={dashStyle} />
 
               <div
@@ -120,7 +124,7 @@ export const RunsMultipleTracesTooltipBody = ({ hoverData }: { hoverData: RunsCo
                       color: hoveredTraceUuid === uuid ? 'unset' : theme.colors.textPlaceholder,
                     }}
                   >
-                    {(() => { const n = typeof value === 'string' ? parseFloat(value) : value; return formatSpec ? formatSpec.format(n) : Utils.formatMetric(n); })()}
+                    {(() => { const n = typeof value === 'string' ? parseFloat(value) : value; const spec = smartFormatting ? (itemFormatSpec ?? formatSpec) : null; return spec ? spec.format(n) : Utils.formatMetric(n); })()}
                   </span>
                 )}
               </div>

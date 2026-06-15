@@ -563,6 +563,36 @@ export class RunsChartsLineCardConfig extends RunsChartsCardConfig {
   ignoreOutliers?: boolean = false;
 
   /**
+   * Opt-in second (right-hand) Y axis. When true, the metrics in `selectedMetricKeysRight` are drawn
+   * against an independent right-side axis with its own scale / log / range / outlier settings.
+   */
+  showSecondYAxis?: boolean = false;
+
+  /**
+   * Metrics drawn on the second (right-hand) Y axis. Independent from `selectedMetricKeys` (the left
+   * axis). Metrics-only for now; the second axis does not support custom expressions.
+   */
+  selectedMetricKeysRight?: string[] = [];
+
+  /**
+   * Scale type for the second Y axis.
+   */
+  scaleTypeRight?: 'linear' | 'log' = 'linear';
+
+  /**
+   * Min/max range for the second Y axis (only yMin/yMax are used).
+   */
+  rangeRight?: ChartRange = {
+    yMin: undefined,
+    yMax: undefined,
+  };
+
+  /**
+   * Whether to clip the second Y axis data to the 5th/95th percentiles.
+   */
+  ignoreOutliersRight?: boolean = false;
+
+  /**
    * Whether or not to use global X axis settings.
    */
   useGlobalXaxisKey?: boolean = true;

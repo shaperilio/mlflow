@@ -231,6 +231,30 @@ export const RunsChartsConfigureLineChart = ({
     [onStateChange],
   );
 
+  const updateShowSecondYAxis = useCallback(
+    (showSecondYAxis: boolean) => {
+      onStateChange((current) => ({ ...(current as RunsChartsLineCardConfig), showSecondYAxis }));
+    },
+    [onStateChange],
+  );
+
+  const updateSelectedMetricsRight = useCallback(
+    (selectedMetricKeysRight: string[]) => {
+      onStateChange((current) => ({ ...(current as RunsChartsLineCardConfig), selectedMetricKeysRight }));
+    },
+    [onStateChange],
+  );
+
+  const updateScaleTypeRight = useCallback(
+    (isLogType: boolean) => {
+      onStateChange((current) => ({
+        ...(current as RunsChartsLineCardConfig),
+        scaleTypeRight: isLogType ? 'log' : 'linear',
+      }));
+    },
+    [onStateChange],
+  );
+
   const updateYAxisType = useCallback(
     (isLogType: boolean) => {
       onStateChange((current) => {
@@ -710,6 +734,65 @@ export const RunsChartsConfigureLineChart = ({
           />
         </div>
       </RunsChartsConfigureField>
+      <Typography.Title level={4} color="secondary" css={{ paddingTop: theme.spacing.lg }}>
+        Second Y-axis
+      </Typography.Title>
+      <RunsChartsConfigureField title="Enable" compact>
+        <Switch
+          componentId="mlflow.charts.line_chart_configure.second_y_axis_enable"
+          aria-label="second-y-axis-enable"
+          checked={state.showSecondYAxis ?? false}
+          onChange={updateShowSecondYAxis}
+          activeLabel="On"
+          inactiveLabel="Off"
+          disabledLabel="Disabled"
+        />
+      </RunsChartsConfigureField>
+      {state.showSecondYAxis && (
+        <>
+          <RunsChartsConfigureField title="Metric (right)" compact>
+            <LegacySelect
+              mode="multiple"
+              placeholder={
+                metricKeyList.length === 0 ? (
+                  <FormattedMessage
+                    defaultMessage="No metrics available"
+                    description="Text shown in a disabled multi-selector when there are no selectable metrics."
+                  />
+                ) : (
+                  <FormattedMessage
+                    defaultMessage="Select metrics"
+                    description="Placeholder for the second-axis metric multi-selector when configuring a line chart"
+                  />
+                )
+              }
+              css={{ width: '100%' }}
+              value={metricKeyList.length === 0 ? [] : state.selectedMetricKeysRight ?? []}
+              onChange={updateSelectedMetricsRight}
+              disabled={metricKeyList.length === 0}
+              dangerouslySetAntdProps={{ showSearch: true }}
+            >
+              {metricKeyList.map((metric) => (
+                <LegacySelect.Option key={metric} value={metric} data-testid={`metric-right-${metric}`}>
+                  {metric}
+                </LegacySelect.Option>
+              ))}
+            </LegacySelect>
+          </RunsChartsConfigureField>
+          <RunsChartsConfigureField title="Y-axis scale (right)" compact>
+            <Switch
+              componentId="mlflow.charts.line_chart_configure.second_y_axis_log"
+              aria-label="second-y-axis-log"
+              checked={state.scaleTypeRight === 'log'}
+              onChange={updateScaleTypeRight}
+              label="Log scale"
+              activeLabel="On"
+              inactiveLabel="Off"
+              disabledLabel="Disabled"
+            />
+          </RunsChartsConfigureField>
+        </>
+      )}
       <Typography.Title level={4} color="secondary" css={{ paddingTop: theme.spacing.lg }}>
         Advanced
       </Typography.Title>

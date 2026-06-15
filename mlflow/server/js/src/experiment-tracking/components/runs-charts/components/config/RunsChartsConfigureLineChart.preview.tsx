@@ -69,7 +69,8 @@ const RunsChartsConfigureLineChartPreviewImpl = ({
     };
     const yAxisKeys = getYAxisKeys(cardConfig);
     const xAxisKeys = !selectedXAxisMetricKey ? [] : [selectedXAxisMetricKey];
-    return yAxisKeys.concat(xAxisKeys);
+    const rightAxisKeys = cardConfig.showSecondYAxis ? cardConfig.selectedMetricKeysRight ?? [] : [];
+    return uniq(yAxisKeys.concat(xAxisKeys, rightAxisKeys));
   }, [cardConfig, selectedXAxisMetricKey]);
 
   const { resultsByRunUuid, isLoading } = useSampledMetricHistory({
@@ -147,6 +148,10 @@ const RunsChartsConfigureLineChartPreviewImpl = ({
       displayPoints={cardConfig.displayPoints}
       yAxisExpressions={cardConfig.yAxisExpressions}
       yAxisKey={cardConfig.yAxisKey}
+      showSecondYAxis={cardConfig.showSecondYAxis}
+      selectedMetricKeysRight={cardConfig.selectedMetricKeysRight}
+      scaleTypeRight={cardConfig.scaleTypeRight}
+      rangeRight={cardConfig.rangeRight}
       useDefaultHoverBox={false}
       onHover={setTooltip}
       onUnhover={resetTooltip}

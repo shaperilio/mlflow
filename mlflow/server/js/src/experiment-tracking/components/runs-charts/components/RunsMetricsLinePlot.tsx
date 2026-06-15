@@ -37,7 +37,7 @@ import {
   HOUR_IN_MILLISECONDS,
   LINE_CHART_RELATIVE_TIME_THRESHOLD,
 } from '@mlflow/mlflow/src/experiment-tracking/constants';
-import { type RunsChartsLineChartExpression, RunsChartsLineChartYAxisType } from '../runs-charts.types';
+import { type ChartRange, type RunsChartsLineChartExpression, RunsChartsLineChartYAxisType } from '../runs-charts.types';
 import { useChartExpressionParser } from '../hooks/useChartExpressionParser';
 import { getExpressionChartsSortedMetricHistory } from '../utils/expressionCharts.utils';
 import { RunsChartCardLoadingPlaceholder } from './cards/ChartCard.common';
@@ -297,6 +297,12 @@ export interface RunsCompareMultipleTracesTooltipData {
     dashStyle?: Dash;
     displayName: string;
     value?: string | number;
+    /** Per-row format spec, so left- and right-axis values format on their own scales. */
+    formatSpec?: ColumnFormatSpec;
+    /** True for second (right-hand) axis rows. */
+    isSecondaryAxis?: boolean;
+    /** The row's metric; rows are grouped by this (blank line between metrics) in the tooltip. */
+    metricKey?: string;
   }[];
   xValue: string | number;
   xAxisKey: RunsChartsLineChartXAxisType;
@@ -343,6 +349,27 @@ export interface RunsMetricsLinePlotProps extends RunsPlotsCommonProps {
    * Choose X axis mode - numeric step or absolute time
    */
   xAxisKey?: RunsChartsLineChartXAxisType;
+
+  /**
+   * Opt-in second (right-hand) Y axis. When true, `selectedMetricKeysRight` metrics are drawn against
+   * an independent right-side axis (`yaxis2`) with its own scale / log / range.
+   */
+  showSecondYAxis?: boolean;
+
+  /**
+   * Metrics drawn on the second (right-hand) Y axis.
+   */
+  selectedMetricKeysRight?: string[];
+
+  /**
+   * Scale type for the second Y axis.
+   */
+  scaleTypeRight?: 'linear' | 'log';
+
+  /**
+   * Manual min/max range for the second Y axis (only yMin/yMax are used; undefined => autorange).
+   */
+  rangeRight?: ChartRange;
 
   /**
    * Choose Y axis mode - metric or expressions
@@ -499,6 +526,10 @@ export const RunsMetricsLinePlot = React.memo(
     scaleType = 'linear',
     xAxisScaleType = 'linear',
     xAxisKey = RunsChartsLineChartXAxisType.STEP,
+    showSecondYAxis = false,
+    selectedMetricKeysRight,
+    scaleTypeRight = 'linear',
+    rangeRight,
     yAxisKey = RunsChartsLineChartYAxisType.METRIC,
     yAxisExpressions = [],
     selectedXAxisMetricKey = '',
@@ -648,7 +679,53 @@ export const RunsMetricsLinePlot = React.memo(
         );
     }, [lineShape, metricKey, runsData, selectedMetricKeys, dynamicXAxisKey, selectedXAxisMetricKey, xAxisScaleType]);
 
-    const plotDataWithBands = useMemo(() => [...bandsData, ...plotData], [plotData, bandsData]);
+    // Traces for the optional second (right-hand) Y axis. Same builder as the primary axis, but each
+    // trace is pinned to Plotly's `y2` axis. Metrics-only (no expressions) and no bands for now.
+    const rightPlotData = useMemo(() => {
+      if (!showSecondYAxis || !selectedMetricKeysRight?.length) {
+        return [];
+      }
+      return runsData
+        .map((runEntry) =>
+          (selectedMetricKeysRight ?? [])
+            .filter((metricKey) => !isEmpty(runEntry.metricsHistory?.[metricKey]))
+            .flatMap((metricKey, idx) =>
+              getTraceAndOriginalTrace({
+                runEntry,
+                metricKey,
+                xAxisKey: dynamicXAxisKey,
+                selectedXAxisMetricKey,
+                useDefaultHoverBox,
+                lineSmoothness,
+                lineShape,
+                lineDash: lineDashStyles[idx % lineDashStyles.length],
+                displayPoints,
+                xAxisScaleType,
+              }).map((trace) => {
+                (trace as { yaxis?: string }).yaxis = 'y2';
+                return trace;
+              }),
+            ),
+        )
+        .flat();
+    }, [
+      showSecondYAxis,
+      selectedMetricKeysRight,
+      runsData,
+      dynamicXAxisKey,
+      selectedXAxisMetricKey,
+      useDefaultHoverBox,
+      lineSmoothness,
+      lineShape,
+      displayPoints,
+      xAxisScaleType,
+    ]);
+
+    // All line traces across both axes; the scanline tooltip / highlight / format logic operate on
+    // this combined set so right-axis series are hoverable too (they share the same X).
+    const allTraces = useMemo(() => [...plotData, ...rightPlotData], [plotData, rightPlotData]);
+
+    const plotDataWithBands = useMemo(() => [...bandsData, ...allTraces], [allTraces, bandsData]);
 
     // Metric-vs-metric mode pairs each series with the X metric by step and keeps only the steps they
     // share (see prepareXAxisDataForMetricType / orderBySteps). That silently drops the non-overlapping
@@ -726,12 +803,46 @@ export const RunsMetricsLinePlot = React.memo(
       };
     }, [theme, xAxisKeyLabel, xRange, xAxisPlotlyType]);
 
+    // Optional right-hand axis, overlaid on the primary Y axis. Independent scale / log / range;
+    // undefined when the second axis is off (Plotly then ignores the `y2`-pinned traces' axis).
+    const yAxis2Params: Partial<LayoutAxis> | undefined = useMemo(() => {
+      if (!showSecondYAxis) {
+        return undefined;
+      }
+      const range =
+        rangeRight?.yMin != null && rangeRight?.yMax != null ? [rangeRight.yMin, rangeRight.yMax] : undefined;
+      return {
+        overlaying: 'y',
+        side: 'right',
+        tickfont: { size: 11, color: theme.colors.textSecondary },
+        type: scaleTypeRight === 'log' ? 'log' : 'linear',
+        fixedrange: lockXAxisZoom,
+        range,
+        autorange: range === undefined,
+        tickformat: 'f',
+        // Let Plotly grow the right margin to fit this axis's ticks/labels (the default margin is r:0).
+        automargin: true,
+        // Don't draw this axis's own gridlines — two independent y-scales produce non-coinciding
+        // gridlines that clutter the plot. Keep only the left axis's grid; the right ticks still show.
+        showgrid: false,
+      } as Partial<LayoutAxis>;
+    }, [showSecondYAxis, scaleTypeRight, rangeRight, theme, lockXAxisZoom]);
+
+    // The default chart margin is r:0 (no room on the right). Leave space for the second axis when on.
+    const effectiveMargin = useMemo(
+      () => (showSecondYAxis ? { ...margin, r: margin.r || 48 } : margin),
+      [showSecondYAxis, margin],
+    );
+
     const [layout, setLayout] = useState<Partial<Layout>>({
       width: width || layoutWidth,
       height: height || layoutHeight,
-      margin,
+      margin: effectiveMargin,
       xaxis: xAxisParams,
       yaxis: yAxisParams,
+      // Only include yaxis2 when the second axis is on; a present-but-undefined axis key makes Plotly
+      // mis-lay-out the whole chart (blank plot area).
+      ...(yAxis2Params ? { yaxis2: yAxis2Params } : {}),
       showlegend: false,
     });
 
@@ -741,8 +852,9 @@ export const RunsMetricsLinePlot = React.memo(
           ...current,
           width: width || layoutWidth,
           height: height || layoutHeight,
-          margin,
+          margin: effectiveMargin,
           yaxis: yAxisParams,
+          ...(yAxis2Params ? { yaxis2: yAxis2Params } : {}),
           xaxis: { ...current.xaxis, ...xAxisParams },
           showlegend: false,
         };
@@ -752,9 +864,14 @@ export const RunsMetricsLinePlot = React.memo(
         }
         return updatedLayout;
       });
-    }, [layoutWidth, layoutHeight, margin, xAxisParams, yAxisParams, width, height, xAxisKeyLabel]);
+    }, [layoutWidth, layoutHeight, effectiveMargin, xAxisParams, yAxisParams, yAxis2Params, width, height, xAxisKeyLabel]);
 
-    const containsMultipleMetricKeys = useMemo(() => (selectedMetricKeys?.length || 0) > 1, [selectedMetricKeys]);
+    // Count both axes' metrics: with one metric on each axis the scanline should still label rows by
+    // their full legend text (e.g. "(Reduction metric)" vs "(Learning rate)"), not just the run name.
+    const containsMultipleMetricKeys = useMemo(
+      () => (selectedMetricKeys?.length || 0) + (showSecondYAxis ? selectedMetricKeysRight?.length || 0 : 0) > 1,
+      [selectedMetricKeys, showSecondYAxis, selectedMetricKeysRight],
+    );
 
     const unhoverCallback = useCallback(() => {
       onUnhover?.();
@@ -792,17 +909,38 @@ export const RunsMetricsLinePlot = React.memo(
       immediateLayout.yaxis.tickformat = 'f';
     }
 
+    // Keep the right-hand axis in sync (Plotly mutates layout, so re-assign each render like xaxis).
+    // Omit the key entirely when off — a stray `yaxis2: undefined` makes Plotly blank the plot.
+    if (yAxis2Params) {
+      immediateLayout.yaxis2 = yAxis2Params;
+    } else {
+      delete immediateLayout.yaxis2;
+    }
+
     const legendLabelData = useMemo(
-      () => getLineChartLegendData(runsData, selectedMetricKeys, metricKey, yAxisKey, yAxisExpressions),
-      [runsData, selectedMetricKeys, metricKey, yAxisKey, yAxisExpressions],
+      () =>
+        getLineChartLegendData(
+          runsData,
+          selectedMetricKeys,
+          metricKey,
+          yAxisKey,
+          yAxisExpressions,
+          showSecondYAxis ? selectedMetricKeysRight : undefined,
+        ),
+      [runsData, selectedMetricKeys, metricKey, yAxisKey, yAxisExpressions, showSecondYAxis, selectedMetricKeysRight],
     );
 
-    // Compute a format spec from ALL y-values across every trace so the tooltip
-    // uses consistent formatting even at steps where every run happens to be 0.
-    const globalFormatSpec = useMemo(() => {
-      const allYValues = plotData.flatMap((trace) => trace.y ?? []) as (number | undefined | null)[];
-      return computeColumnFormatSpec(allYValues);
+    // Compute the smart-formatting spec separately per axis (from each axis's own y-values), so the
+    // tiny right-axis values aren't crushed by a spec derived from the larger left-axis values.
+    const leftFormatSpec = useMemo(() => {
+      const values = plotData.flatMap((trace) => trace.y ?? []) as (number | undefined | null)[];
+      return computeColumnFormatSpec(values);
     }, [plotData]);
+
+    const rightFormatSpec = useMemo(() => {
+      const values = rightPlotData.flatMap((trace) => trace.y ?? []) as (number | undefined | null)[];
+      return computeColumnFormatSpec(values);
+    }, [rightPlotData]);
 
     const {
       scanlineElement,
@@ -812,7 +950,7 @@ export const RunsMetricsLinePlot = React.memo(
       onPointUnhover: unhoverCallbackMultipleRuns,
     } = useRunsMultipleTracesTooltipData({
       legendLabelData,
-      plotData,
+      plotData: allTraces,
       runsData,
       containsMultipleMetricKeys,
       onHover,
@@ -822,7 +960,8 @@ export const RunsMetricsLinePlot = React.memo(
       xAxisScaleType: xAxisKey === RunsChartsLineChartXAxisType.STEP ? xAxisScaleType : 'linear',
       setHoveredPointIndex,
       positionInSection,
-      globalFormatSpec,
+      globalFormatSpec: leftFormatSpec,
+      rightFormatSpec,
     });
 
     /**
