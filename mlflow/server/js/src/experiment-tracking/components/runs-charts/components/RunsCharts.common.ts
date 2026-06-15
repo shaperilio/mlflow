@@ -390,33 +390,47 @@ export const getLineChartLegendData = (
   yAxisKey: RunsChartsLineChartYAxisType,
   yAxisExpressions: RunsChartsLineChartExpression[],
   getCustomLineStyle?: (metricKey: string) => { color: string; dashStyle: Dash } | null,
+  // Metrics drawn on the optional second (right-hand) Y axis. Appended so they appear in the legend
+  // and the scanline tooltip alongside the primary-axis series.
+  selectedMetricKeysRight?: string[],
 ): LegendLabelData[] =>
   runsData.flatMap((runEntry): LegendLabelData[] => {
     if (!runEntry.metricsHistory) {
       return [];
     }
 
+    let leftEntries: LegendLabelData[];
     if (shouldEnableChartExpressions() && yAxisKey === RunsChartsLineChartYAxisType.EXPRESSION) {
-      return yAxisExpressions.map((expression, idx) => ({
+      leftEntries = yAxisExpressions.map((expression, idx) => ({
         label: `${runEntry.displayName} (${expression.expression})`,
         color: runEntry.color ?? '',
         dashStyle: lineDashStyles[idx % lineDashStyles.length],
         metricKey: expression.expression,
         uuid: runEntry.uuid,
       }));
+    } else {
+      const metricKeys = selectedMetricKeys ?? [metricKey];
+      leftEntries = metricKeys.map((metricKey, idx) => {
+        const customLineStyle = getCustomLineStyle?.(metricKey);
+        return {
+          label: `${runEntry.displayName} (${metricKey})`,
+          color: customLineStyle?.color ?? runEntry.color ?? '',
+          dashStyle: customLineStyle?.dashStyle ?? lineDashStyles[idx % lineDashStyles.length],
+          metricKey,
+          uuid: runEntry.uuid,
+        };
+      });
     }
 
-    const metricKeys = selectedMetricKeys ?? [metricKey];
-    return metricKeys.map((metricKey, idx) => {
-      const customLineStyle = getCustomLineStyle?.(metricKey);
-      return {
-        label: `${runEntry.displayName} (${metricKey})`,
-        color: customLineStyle?.color ?? runEntry.color ?? '',
-        dashStyle: customLineStyle?.dashStyle ?? lineDashStyles[idx % lineDashStyles.length],
-        metricKey,
-        uuid: runEntry.uuid,
-      };
-    });
+    const rightEntries: LegendLabelData[] = (selectedMetricKeysRight ?? []).map((metricKey, idx) => ({
+      label: `${runEntry.displayName} (${metricKey})`,
+      color: runEntry.color ?? '',
+      dashStyle: lineDashStyles[idx % lineDashStyles.length],
+      metricKey,
+      uuid: runEntry.uuid,
+    }));
+
+    return [...leftEntries, ...rightEntries];
   });
 
 /**

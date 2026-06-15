@@ -39,10 +39,27 @@ import { useLineChartGlobalConfig } from '../hooks/useLineChartGlobalConfig';
 import { useNodeLevelMetricsFilterContext } from '../../../run-page/node-level-metric-charts/contexts/NodeLevelMetricsFilterContext';
 import { createNodeLevelMetricKey } from '../../../run-page/node-level-metric-charts/node-level-metric-charts.utils';
 
+// Metrics on the optional second (right-hand) Y axis, or [] when that axis is off.
+const getRightAxisMetricKeys = (cardConfig: RunsChartsLineCardConfig): string[] =>
+  cardConfig.showSecondYAxis ? cardConfig.selectedMetricKeysRight ?? [] : [];
+
 export const getV2ChartTitle = (cardConfig: RunsChartsLineCardConfig, useMetricDisplayName = true): string => {
   // For multi-node system metric charts, just use `displayName` as a title if provided
   if (cardConfig.nodeLevelSystemMetricConfiguration && cardConfig.displayName) {
     return cardConfig.displayName;
+  }
+  // When a second (right-hand) axis is in play, spell out which metrics live on which axis.
+  const rightNames = getRightAxisMetricKeys(cardConfig);
+  if (rightNames.length > 0) {
+    const leftNames =
+      shouldEnableChartExpressions() && cardConfig.yAxisKey === RunsChartsLineChartYAxisType.EXPRESSION
+        ? cardConfig.yAxisExpressions?.map((exp) => exp.expression) ?? []
+        : cardConfig.selectedMetricKeys?.length
+          ? cardConfig.selectedMetricKeys
+          : cardConfig.metricKey
+            ? [cardConfig.metricKey]
+            : [];
+    return `Left: ${leftNames.join(', ')}; Right: ${rightNames.join(', ')}`;
   }
   if (shouldEnableChartExpressions() && cardConfig.yAxisKey === RunsChartsLineChartYAxisType.EXPRESSION) {
     const expressions = cardConfig.yAxisExpressions?.map((exp) => exp.expression) || [];
@@ -62,7 +79,8 @@ export const getV2ChartTitle = (cardConfig: RunsChartsLineCardConfig, useMetricD
 export const getV2ChartTitleTooltip = (cardConfig: RunsChartsLineCardConfig): string => {
   if (
     cardConfig.nodeLevelSystemMetricConfiguration ||
-    (shouldEnableChartExpressions() && cardConfig.yAxisKey === RunsChartsLineChartYAxisType.EXPRESSION)
+    (shouldEnableChartExpressions() && cardConfig.yAxisKey === RunsChartsLineChartYAxisType.EXPRESSION) ||
+    getRightAxisMetricKeys(cardConfig).length > 0
   ) {
     return getV2ChartTitle(cardConfig);
   }
@@ -206,8 +224,9 @@ export const RunsChartsLineChartCard = ({
     };
     const yAxisKeys = getYAxisKeys(config);
     const xAxisKeys = !selectedXAxisMetricKey ? [] : [selectedXAxisMetricKey];
+    const rightAxisKeys = config.showSecondYAxis ? config.selectedMetricKeysRight ?? [] : [];
 
-    return yAxisKeys.concat(xAxisKeys);
+    return uniq(yAxisKeys.concat(xAxisKeys, rightAxisKeys));
   }, [config, selectedXAxisMetricKey, selectedMetricKeys]);
 
   const { setTooltip, resetTooltip, destroyTooltip, selectedRunUuid } = useRunsChartsTooltip(
@@ -385,6 +404,10 @@ export const RunsChartsLineChartCard = ({
           xAxisScaleType={config.xAxisScaleType}
           yAxisKey={config.yAxisKey}
           yAxisExpressions={config.yAxisExpressions}
+          showSecondYAxis={config.showSecondYAxis}
+          selectedMetricKeysRight={config.selectedMetricKeysRight}
+          scaleTypeRight={config.scaleTypeRight}
+          rangeRight={config.rangeRight}
           selectedXAxisMetricKey={selectedXAxisMetricKey}
           lineSmoothness={lineSmoothness}
           useDefaultHoverBox={false}

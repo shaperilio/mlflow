@@ -105,8 +105,9 @@ export const useConfirmChartCardConfigurationFn = () => {
       if (!configuredCard.uuid) {
         updateChartsUIState((current) => ({
           ...current,
-          // This condition ensures that chart collection will remain undefined if not set previously
-          compareRunCharts: current.compareRunCharts && [...current.compareRunCharts, serializedCard],
+          // This condition ensures that chart collection will remain undefined if not set previously.
+          // Prepend so a newly added chart appears at the start of its section, not the end.
+          compareRunCharts: current.compareRunCharts && [serializedCard, ...current.compareRunCharts],
         }));
       } /* Editing existing chart */ else {
         updateChartsUIState((current) => ({

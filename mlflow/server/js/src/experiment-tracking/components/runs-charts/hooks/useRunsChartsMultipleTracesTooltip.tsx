@@ -49,6 +49,7 @@ export const useRunsMultipleTracesTooltipData = ({
   xAxisScaleType = 'linear',
   positionInSection = 0,
   globalFormatSpec,
+  rightFormatSpec,
 }: Pick<RunsMetricsLinePlotProps, 'runsData' | 'onHover' | 'onUnhover'> & {
   plotData: LineChartTraceData[];
   legendLabelData: LegendLabelData[];
@@ -60,6 +61,8 @@ export const useRunsMultipleTracesTooltipData = ({
   xAxisScaleType?: 'linear' | 'log';
   positionInSection?: number;
   globalFormatSpec?: ColumnFormatSpec;
+  // Format spec for the second (right-hand) Y axis, applied to its rows so they keep their own scale.
+  rightFormatSpec?: ColumnFormatSpec;
 }) => {
   // Save current boundaries/dimensions of the plot in the mutable ref object
   const chartBoundaries = useRef<{
@@ -106,6 +109,7 @@ export const useRunsMultipleTracesTooltipData = ({
   const immediateXValuesData = useRef(visibleXValues);
   const immediateFigure = useRef(initializedFigure);
   const immediateFormatSpec = useRef(globalFormatSpec);
+  const immediateRightFormatSpec = useRef(rightFormatSpec);
 
   // Update the mutable ref objects when the input data changes
   immediateLegendLabelData.current = legendLabelData;
@@ -114,6 +118,7 @@ export const useRunsMultipleTracesTooltipData = ({
   immediateXValuesData.current = visibleXValues;
   immediateFigure.current = initializedFigure;
   immediateFormatSpec.current = globalFormatSpec;
+  immediateRightFormatSpec.current = rightFormatSpec;
 
   // Setup the boundaries of the plot
   const setupBoundaries = useCallback((figure: Readonly<Figure>) => {
@@ -312,6 +317,9 @@ export const useRunsMultipleTracesTooltipData = ({
           }
           const value = correspondingDataTrace.y?.[xIndex];
 
+          // Right-axis traces are pinned to Plotly's 'y2'; format their values on the right-axis scale.
+          const isRightAxis = (correspondingDataTrace as { yaxis?: string }).yaxis === 'y2';
+
           // Construct the tooltip legend entry
           return {
             displayName: displayName || '',
@@ -319,12 +327,28 @@ export const useRunsMultipleTracesTooltipData = ({
             color: legendEntry?.color,
             dashStyle: legendEntry?.dashStyle,
             uuid: legendEntry.metricKey ? `${legendEntry.uuid}.${legendEntry.metricKey}` : `${legendEntry.uuid}`,
+            formatSpec: isRightAxis ? immediateRightFormatSpec.current : immediateFormatSpec.current,
+            isSecondaryAxis: isRightAxis,
+            metricKey: legendEntry.metricKey,
           };
+        });
+
+        // Group rows by metric (in the order each metric first appears in the legend — left metrics in
+        // selection order, then right metrics), with runs sorted by value within each metric group.
+        const metricOrder = new Map<string | undefined, number>();
+        immediateLegendLabelData.current.forEach((entry) => {
+          if (!metricOrder.has(entry.metricKey)) {
+            metricOrder.set(entry.metricKey, metricOrder.size);
+          }
         });
 
         // Save the tooltip data to the mutable ref object
         immediateHoverData.current = {
-          tooltipLegendItems: orderBy(compact(data), 'value', 'desc'),
+          tooltipLegendItems: orderBy(
+            compact(data),
+            [(item) => metricOrder.get(item.metricKey) ?? Number.MAX_SAFE_INTEGER, 'value'],
+            ['asc', 'desc'],
+          ),
           hoveredDataPoint: currentHoveredDataPoint?.current,
           xValue: closestXValue,
           xAxisKey,

@@ -15,6 +15,8 @@ Customizations atop the 3.9.0 release:
 - Better sorting of chart sections.
 - Show a warning when two metrics of different lengths are plotted together (previously, the longer
   metric was silently truncated).
+- Allow two y axes in line plots.
+- Adding a new plot now puts it at the start of a section by default.
 - [deploy](deploy/) directory to serve this frontend against an already-running backend; you can go
   hog-wild on GUI experiments while keeping a completely functional server running elsewhere.
 
