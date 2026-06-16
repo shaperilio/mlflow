@@ -50,7 +50,14 @@ export enum RUNS_VISIBILITY_MODE {
 
 export type RunsChartsGlobalLineChartConfig = Partial<
   Pick<RunsChartsLineCardConfig, 'selectedXAxisMetricKey' | 'xAxisKey' | 'lineSmoothness'>
->;
+> & {
+  /**
+   * Manual X-axis min/max applied to charts that defer their X axis to workspace settings
+   * (useGlobalXaxisKey). Both must be set for the range to take effect.
+   */
+  xRangeMin?: number;
+  xRangeMax?: number;
+};
 
 /**
  * An interface describing serializable, persistable configuration for charts displaying

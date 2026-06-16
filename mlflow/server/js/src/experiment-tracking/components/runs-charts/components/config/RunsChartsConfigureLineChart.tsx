@@ -651,7 +651,9 @@ export const RunsChartsConfigureLineChart = ({
           </Radio.Group>
         )}
       </RunsChartsConfigureField>
-      {state.xAxisKey === RunsChartsLineChartXAxisType.STEP && (
+      {/* X scale (incl. manual min/max) is per-chart only; when the X axis defers to workspace
+          settings there's nothing to configure here. */}
+      {state.xAxisKey === RunsChartsLineChartXAxisType.STEP && !state.useGlobalXaxisKey && (
         <>
           <RunsChartsConfigureField title="X-axis scale" compact>
             <div css={{ display: 'flex', gap: theme.spacing.sm }}>

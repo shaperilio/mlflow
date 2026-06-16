@@ -102,7 +102,17 @@ export const RunsChartsLineChartCard = ({
   positionInSection,
   ...reorderProps
 }: RunsChartsLineChartCardProps) => {
-  const { xAxisKey, selectedXAxisMetricKey, lineSmoothness } = useLineChartGlobalConfig(config, globalLineChartConfig);
+  const { xAxisKey, selectedXAxisMetricKey, lineSmoothness, xRangeMin, xRangeMax } = useLineChartGlobalConfig(
+    config,
+    globalLineChartConfig,
+  );
+
+  // Effective manual X range (from the chart, or from workspace settings when the chart defers its X
+  // axis). Both bounds required; zoom (xRangeLocal) takes precedence when set.
+  const effectiveXRange = useMemo<[number, number] | undefined>(
+    () => (!isUndefined(xRangeMin) && !isUndefined(xRangeMax) ? [xRangeMin, xRangeMax] : undefined),
+    [xRangeMin, xRangeMax],
+  );
 
   const toggleFullScreenChart = useCallback(() => {
     setFullScreenChart?.({
@@ -177,15 +187,11 @@ export const RunsChartsLineChartCard = ({
    * We set a local state for changes because full screen and non-full screen charts are
    * different components - this prevents having to sync them.
    */
-  const [yRangeLocal, setYRangeLocal] = useState<[number, number] | undefined>(() => {
-    if (config.range && !isUndefined(config.range.yMin) && !isUndefined(config.range.yMax)) {
-      return [config.range.yMin, config.range.yMax];
-    }
-    return undefined;
-  });
+  // Zoom-only state (seeded undefined). The manual Y range is applied live via `resolvedYRange`, so a
+  // stale value can't get stuck after the range is cleared.
+  const [yRangeLocal, setYRangeLocal] = useState<[number, number] | undefined>(undefined);
 
   const { setOffsetTimestamp, stepRange, xRangeLocal, setXRangeLocal } = useCompareRunChartSelectedRange(
-    config,
     xAxisKey,
     config.metricKey,
     sampledMetricsByRunUuid,
@@ -256,6 +262,18 @@ export const RunsChartsLineChartCard = ({
         }
         xAxisMin = newXRange[0];
         xAxisMax = newXRange[1];
+      }
+
+      // When a manual/global range controls an axis, never capture a local override from plot updates:
+      // transient updates (e.g. after collapsing/expanding the section) would otherwise shadow the
+      // live range and get "stuck". The manual/global range is re-applied live on every render.
+      if (effectiveXRange) {
+        xAxisMin = undefined;
+        xAxisMax = undefined;
+      }
+      if (resolvedYRange) {
+        yAxisMin = undefined;
+        yAxisMax = undefined;
       }
 
       if (
@@ -391,7 +409,7 @@ export const RunsChartsLineChartCard = ({
           onUnhover={resetTooltip}
           selectedRunUuid={selectedRunUuid}
           onUpdate={chartLayoutUpdated}
-          xRange={xRangeLocal}
+          xRange={xRangeLocal ?? effectiveXRange}
           yRange={yRangeLocal ?? resolvedYRange}
           fullScreen={fullScreen}
           displayPoints={config.displayPoints}
