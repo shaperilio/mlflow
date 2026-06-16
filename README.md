@@ -6,6 +6,7 @@ Customizations atop the 3.9.0 release:
 - In table view, columns are reordable by dragging, and both column size and position persist just
   like column selection does.
 - "Duration" column is hidable.
+- "Runs / models / traces" side panel is hidable.
 - Parameters that look like numbers are sorted as such, instead of as strings. Note: this would be
   better implemented as a backend fix to handle pagination (and maybe querying), but this is
   front-end only, so it's done on the browser. That has the advantage of being extremely quick; as
