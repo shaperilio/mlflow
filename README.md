@@ -1,10 +1,15 @@
 # 3.9.0-custom
 
-Customizations atop the 3.9.0 release:
+Customizations atop the 3.9.0 release
+
+### General 
+- Custom logo, with fallback to original MLFlow logo.
+
+### Table view
 - Eye-friendly number format, based on [#23023](https://github.com/mlflow/mlflow/pull/23023).
 - Header column wrapping in table views.
-- In table view, columns are reordable by dragging, and both column size and position persist just
-  like column selection does.
+- Columns are reordable by dragging, and both column size and position persist just like column
+  selection does.
 - "Duration" column is hidable.
 - "Runs / models / traces" side panel is hidable.
 - Parameters that look like numbers are sorted as such, instead of as strings. Note: this would be
@@ -12,15 +17,18 @@ Customizations atop the 3.9.0 release:
   front-end only, so it's done on the browser. That has the advantage of being extremely quick; as
   such *all* parameter, tag, and metric sorting on this branch is done in the browser (other
   attributes still sort server-side).
-- Custom logo, with fallback to original MLFlow logo.
+
+### Chart view
 - Better sorting of chart sections.
 - Show a warning when two metrics of different lengths are plotted together (previously, the longer
   metric was silently truncated).
 - Allow two y axes in line plots.
 - Adding a new plot now puts it at the start of a section by default.
+### Deployment
 - [deploy](deploy/) directory to serve this frontend against an already-running backend; you can go
   hog-wild on GUI experiments while keeping a completely functional server running elsewhere.
 
+# MLFlow
 What follows is the readme from 3.9.0.
 
 <h1 align="center" style="border-bottom: none">
