@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RunsChartsRunData } from '../RunsCharts.common';
-import { RunsChartsLineChartXAxisType, removeOutliersFromMetricHistory } from '../RunsCharts.common';
+import { RunsChartsLineChartXAxisType, removeOutliersFromMetricHistory, resolveManualYRange } from '../RunsCharts.common';
 import { RunsMetricsLinePlot } from '../RunsMetricsLinePlot';
 import { RunsChartsTooltipMode, useRunsChartsTooltip } from '../../hooks/useRunsChartsTooltip';
 import {
@@ -274,24 +274,33 @@ export const RunsChartsLineChartCard = ({
     destroyTooltip();
   }, [destroyTooltip, isLoading]);
 
-  const sampledData: RunsChartsRunData[] = useMemo(
-    () =>
-      slicedRuns.map((run) => {
-        const metricsHistory = metricKeys.reduce((acc: MetricHistoryByName, key) => {
-          const history = resultsByRunUuid[run.uuid]?.[key]?.metricsHistory;
-          if (history) {
-            acc[key] = config.ignoreOutliers ? removeOutliersFromMetricHistory(history) : history;
-          }
-          return acc;
-        }, {});
+  const sampledData: RunsChartsRunData[] = useMemo(() => {
+    // Right-axis metrics use their own ignore-outliers setting; everything else uses the left axis's.
+    const rightKeys = new Set(config.showSecondYAxis ? config.selectedMetricKeysRight ?? [] : []);
+    return slicedRuns.map((run) => {
+      const metricsHistory = metricKeys.reduce((acc: MetricHistoryByName, key) => {
+        const history = resultsByRunUuid[run.uuid]?.[key]?.metricsHistory;
+        if (history) {
+          const ignoreOutliers = rightKeys.has(key) ? config.ignoreOutliersRight : config.ignoreOutliers;
+          acc[key] = ignoreOutliers ? removeOutliersFromMetricHistory(history) : history;
+        }
+        return acc;
+      }, {});
 
-        return {
-          ...run,
-          metricsHistory,
-        };
-      }),
-    [metricKeys, resultsByRunUuid, slicedRuns, config.ignoreOutliers],
-  );
+      return {
+        ...run,
+        metricsHistory,
+      };
+    });
+  }, [
+    metricKeys,
+    resultsByRunUuid,
+    slicedRuns,
+    config.ignoreOutliers,
+    config.ignoreOutliersRight,
+    config.showSecondYAxis,
+    config.selectedMetricKeysRight,
+  ]);
 
   const sampledGroupData = useGroupedChartRunData({
     enabled: isGrouped,
@@ -305,6 +314,42 @@ export const RunsChartsLineChartCard = ({
 
   // Use grouped data traces only if enabled and if there are any groups
   const chartData = isGrouped ? sampledGroupData : sampledData;
+
+  // Resolve any one-sided manual Y range to a concrete [min, max] here (memoized on the sampled data)
+  // rather than inside the plot's render path. Plotly 2.5.1 can't autorange a single side, so a lone
+  // bound is paired with the data extent once, when the data changes — not on every chart render.
+  const resolvedYRange = useMemo(
+    () =>
+      resolveManualYRange(
+        chartData,
+        config.selectedMetricKeys ?? [config.metricKey],
+        config.range?.yMin,
+        config.range?.yMax,
+        config.scaleType === 'log',
+      ),
+    [chartData, config.selectedMetricKeys, config.metricKey, config.range?.yMin, config.range?.yMax, config.scaleType],
+  );
+
+  const resolvedRangeRight = useMemo(() => {
+    if (!config.showSecondYAxis) {
+      return undefined;
+    }
+    const resolved = resolveManualYRange(
+      chartData,
+      config.selectedMetricKeysRight ?? [],
+      config.rangeRight?.yMin,
+      config.rangeRight?.yMax,
+      config.scaleTypeRight === 'log',
+    );
+    return resolved ? { yMin: resolved[0], yMax: resolved[1] } : undefined;
+  }, [
+    chartData,
+    config.showSecondYAxis,
+    config.selectedMetricKeysRight,
+    config.rangeRight?.yMin,
+    config.rangeRight?.yMax,
+    config.scaleTypeRight,
+  ]);
 
   const [imageDownloadHandler, setImageDownloadHandler] = useChartImageDownloadHandler();
 
@@ -338,7 +383,7 @@ export const RunsChartsLineChartCard = ({
           showSecondYAxis={config.showSecondYAxis}
           selectedMetricKeysRight={config.selectedMetricKeysRight}
           scaleTypeRight={config.scaleTypeRight}
-          rangeRight={config.rangeRight}
+          rangeRight={resolvedRangeRight}
           selectedXAxisMetricKey={selectedXAxisMetricKey}
           lineSmoothness={lineSmoothness}
           useDefaultHoverBox={false}
@@ -347,7 +392,7 @@ export const RunsChartsLineChartCard = ({
           selectedRunUuid={selectedRunUuid}
           onUpdate={chartLayoutUpdated}
           xRange={xRangeLocal}
-          yRange={yRangeLocal}
+          yRange={yRangeLocal ?? resolvedYRange}
           fullScreen={fullScreen}
           displayPoints={config.displayPoints}
           onSetDownloadHandler={setImageDownloadHandler}

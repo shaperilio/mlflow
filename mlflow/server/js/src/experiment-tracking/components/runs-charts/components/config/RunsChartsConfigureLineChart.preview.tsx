@@ -5,6 +5,7 @@ import type { MetricHistoryByName } from '../../../../types';
 import {
   RunsChartsLineChartXAxisType,
   removeOutliersFromMetricHistory,
+  resolveManualYRange,
   type RunsChartsRunData,
 } from '../RunsCharts.common';
 import { RunsMetricsLinePlot } from '../RunsMetricsLinePlot';
@@ -81,24 +82,33 @@ const RunsChartsConfigureLineChartPreviewImpl = ({
     autoRefreshEnabled: false,
   });
 
-  const sampledData = useMemo(
-    () =>
-      previewData.map((run) => {
-        const metricsHistory = metricKeysToFetch.reduce((acc: MetricHistoryByName, key) => {
-          const history = resultsByRunUuid[run.uuid]?.[key]?.metricsHistory;
-          if (history) {
-            acc[key] = cardConfig.ignoreOutliers ? removeOutliersFromMetricHistory(history) : history;
-          }
-          return acc;
-        }, {});
+  const sampledData = useMemo(() => {
+    // Right-axis metrics use their own ignore-outliers setting; everything else uses the left axis's.
+    const rightKeys = new Set(cardConfig.showSecondYAxis ? cardConfig.selectedMetricKeysRight ?? [] : []);
+    return previewData.map((run) => {
+      const metricsHistory = metricKeysToFetch.reduce((acc: MetricHistoryByName, key) => {
+        const history = resultsByRunUuid[run.uuid]?.[key]?.metricsHistory;
+        if (history) {
+          const ignoreOutliers = rightKeys.has(key) ? cardConfig.ignoreOutliersRight : cardConfig.ignoreOutliers;
+          acc[key] = ignoreOutliers ? removeOutliersFromMetricHistory(history) : history;
+        }
+        return acc;
+      }, {});
 
-        return {
-          ...run,
-          metricsHistory,
-        };
-      }),
-    [metricKeysToFetch, resultsByRunUuid, previewData, cardConfig.ignoreOutliers],
-  );
+      return {
+        ...run,
+        metricsHistory,
+      };
+    });
+  }, [
+    metricKeysToFetch,
+    resultsByRunUuid,
+    previewData,
+    cardConfig.ignoreOutliers,
+    cardConfig.ignoreOutliersRight,
+    cardConfig.showSecondYAxis,
+    cardConfig.selectedMetricKeysRight,
+  ]);
 
   const sampledGroupData = useGroupedChartRunData({
     enabled: isGrouped,
@@ -112,6 +122,47 @@ const RunsChartsConfigureLineChartPreviewImpl = ({
 
   // Use grouped data traces only if enabled and if there are any groups
   const chartData = isGrouped ? sampledGroupData : sampledData;
+
+  // Resolve a one-sided manual Y range to a concrete [min, max] from the data (the plot just gets a
+  // fixed range). Memoized so it only re-scans when the sampled data or the range inputs change.
+  const yRange = useMemo(
+    () =>
+      resolveManualYRange(
+        chartData,
+        cardConfig.selectedMetricKeys ?? [cardConfig.metricKey],
+        cardConfig.range?.yMin,
+        cardConfig.range?.yMax,
+        cardConfig.scaleType === 'log',
+      ),
+    [
+      chartData,
+      cardConfig.selectedMetricKeys,
+      cardConfig.metricKey,
+      cardConfig.range?.yMin,
+      cardConfig.range?.yMax,
+      cardConfig.scaleType,
+    ],
+  );
+  const resolvedRangeRight = useMemo(() => {
+    if (!cardConfig.showSecondYAxis) {
+      return undefined;
+    }
+    const resolved = resolveManualYRange(
+      chartData,
+      cardConfig.selectedMetricKeysRight ?? [],
+      cardConfig.rangeRight?.yMin,
+      cardConfig.rangeRight?.yMax,
+      cardConfig.scaleTypeRight === 'log',
+    );
+    return resolved ? { yMin: resolved[0], yMax: resolved[1] } : undefined;
+  }, [
+    chartData,
+    cardConfig.showSecondYAxis,
+    cardConfig.selectedMetricKeysRight,
+    cardConfig.rangeRight?.yMin,
+    cardConfig.rangeRight?.yMax,
+    cardConfig.scaleTypeRight,
+  ]);
 
   const { setTooltip, resetTooltip } = useRunsChartsTooltip(
     cardConfig,
@@ -133,7 +184,6 @@ const RunsChartsConfigureLineChartPreviewImpl = ({
   };
 
   const xRange = checkValidRange(cardConfig.range?.xMin, cardConfig.range?.xMax);
-  const yRange = checkValidRange(cardConfig.range?.yMin, cardConfig.range?.yMax);
 
   return (
     <RunsMetricsLinePlot
@@ -151,7 +201,7 @@ const RunsChartsConfigureLineChartPreviewImpl = ({
       showSecondYAxis={cardConfig.showSecondYAxis}
       selectedMetricKeysRight={cardConfig.selectedMetricKeysRight}
       scaleTypeRight={cardConfig.scaleTypeRight}
-      rangeRight={cardConfig.rangeRight}
+      rangeRight={resolvedRangeRight}
       useDefaultHoverBox={false}
       onHover={setTooltip}
       onUnhover={resetTooltip}

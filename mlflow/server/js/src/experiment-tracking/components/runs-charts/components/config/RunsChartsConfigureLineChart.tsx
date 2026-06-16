@@ -139,6 +139,12 @@ export const RunsChartsConfigureLineChart = ({
     yMax: state.scaleType === 'log' ? safePow(state.range?.yMax) : state.range?.yMax,
   });
 
+  // Displayed (linear-space) min/max for the second (right-hand) Y axis. Mirrors `localAxisRange`.
+  const [localRightAxisRange, setLocalRightAxisRange] = useState<{ yMin?: number; yMax?: number }>({
+    yMin: state.scaleTypeRight === 'log' ? safePow(state.rangeRight?.yMin) : state.rangeRight?.yMin,
+    yMax: state.scaleTypeRight === 'log' ? safePow(state.rangeRight?.yMax) : state.rangeRight?.yMax,
+  });
+
   /**
    * Callback for updating metric key
    */
@@ -247,10 +253,40 @@ export const RunsChartsConfigureLineChart = ({
 
   const updateScaleTypeRight = useCallback(
     (isLogType: boolean) => {
-      onStateChange((current) => ({
-        ...(current as RunsChartsLineCardConfig),
-        scaleTypeRight: isLogType ? 'log' : 'linear',
-      }));
+      onStateChange((current) => {
+        const config = current as RunsChartsLineCardConfig;
+
+        let newYMin = isLogType ? safeLog(localRightAxisRange.yMin) : localRightAxisRange.yMin;
+        let newYMax = isLogType ? safeLog(localRightAxisRange.yMax) : localRightAxisRange.yMax;
+        if (
+          isLogType &&
+          isInvalidLogValue(localRightAxisRange.yMin) &&
+          localRightAxisRange.yMax &&
+          localRightAxisRange.yMax > 1
+        ) {
+          setLocalRightAxisRange((prev) => ({ ...prev, yMin: 1 }));
+          newYMin = 0; // logged value of 1
+        } else if (
+          isLogType &&
+          (isInvalidLogValue(localRightAxisRange.yMin) || isInvalidLogValue(localRightAxisRange.yMax))
+        ) {
+          setLocalRightAxisRange((prev) => ({ ...prev, yMin: undefined, yMax: undefined }));
+          newYMin = undefined;
+          newYMax = undefined;
+        }
+        return {
+          ...config,
+          scaleTypeRight: isLogType ? 'log' : 'linear',
+          rangeRight: { ...config.rangeRight, yMin: newYMin, yMax: newYMax },
+        };
+      });
+    },
+    [onStateChange, localRightAxisRange.yMin, localRightAxisRange.yMax],
+  );
+
+  const updateIgnoreOutliersRight = useCallback(
+    (ignoreOutliersRight: boolean) => {
+      onStateChange((current) => ({ ...(current as RunsChartsLineCardConfig), ignoreOutliersRight }));
     },
     [onStateChange],
   );
@@ -360,10 +396,9 @@ export const RunsChartsConfigureLineChart = ({
     });
   };
 
+  // Note: unlike the X axis, a single Y bound is allowed — the plot fills the empty side from the
+  // data extent (Plotly 2.5.1 can't autorange just one side), so we commit partial ranges here.
   const updateYAxisWhenConfirmed = (yMin: number | undefined, yMax: number | undefined) => {
-    if (inTransitionState(yMin, yMax)) {
-      return;
-    }
     onStateChange((current) => {
       const config = current as RunsChartsLineCardConfig;
       return {
@@ -372,6 +407,20 @@ export const RunsChartsConfigureLineChart = ({
           ...config.range,
           yMin: config.scaleType === 'log' ? safeLog(yMin) : yMin,
           yMax: config.scaleType === 'log' ? safeLog(yMax) : yMax,
+        },
+      };
+    });
+  };
+
+  const updateRightYAxisWhenConfirmed = (yMin: number | undefined, yMax: number | undefined) => {
+    onStateChange((current) => {
+      const config = current as RunsChartsLineCardConfig;
+      return {
+        ...config,
+        rangeRight: {
+          ...config.rangeRight,
+          yMin: config.scaleTypeRight === 'log' ? safeLog(yMin) : yMin,
+          yMax: config.scaleTypeRight === 'log' ? safeLog(yMax) : yMax,
         },
       };
     });
@@ -396,6 +445,16 @@ export const RunsChartsConfigureLineChart = ({
     const newYMax = yMax ? Number(yMax) : undefined;
     setLocalAxisRange((prev) => ({ ...prev, yMax: newYMax }));
     updateYAxisWhenConfirmed(localAxisRange.yMin, newYMax);
+  };
+  const updateRightYAxisScaleMin = (yMin: string) => {
+    const newYMin = yMin ? Number(yMin) : undefined;
+    setLocalRightAxisRange((prev) => ({ ...prev, yMin: newYMin }));
+    updateRightYAxisWhenConfirmed(newYMin, localRightAxisRange.yMax);
+  };
+  const updateRightYAxisScaleMax = (yMax: string) => {
+    const newYMax = yMax ? Number(yMax) : undefined;
+    setLocalRightAxisRange((prev) => ({ ...prev, yMax: newYMax }));
+    updateRightYAxisWhenConfirmed(localRightAxisRange.yMin, newYMax);
   };
 
   const inTransitionState = (a: number | undefined, b: number | undefined) => {
@@ -780,6 +839,35 @@ export const RunsChartsConfigureLineChart = ({
             </LegacySelect>
           </RunsChartsConfigureField>
           <RunsChartsConfigureField title="Y-axis scale (right)" compact>
+            <div css={{ display: 'flex', gap: theme.spacing.sm }}>
+              <div>
+                <Input
+                  componentId="mlflow.charts.line_chart_configure.second_y_axis_min"
+                  aria-label="second-y-axis-min"
+                  name="min"
+                  type="number"
+                  value={localRightAxisRange.yMin}
+                  onChange={(e) => updateRightYAxisScaleMin(e.target.value)}
+                  max={localRightAxisRange.yMax}
+                  placeholder="Min"
+                />
+                {invalidMessage(state.scaleTypeRight, localRightAxisRange.yMin)}
+              </div>
+              <div>
+                <Input
+                  componentId="mlflow.charts.line_chart_configure.second_y_axis_max"
+                  aria-label="second-y-axis-max"
+                  name="max"
+                  type="number"
+                  value={localRightAxisRange.yMax}
+                  onChange={(e) => updateRightYAxisScaleMax(e.target.value)}
+                  min={localRightAxisRange.yMin}
+                  placeholder="Max"
+                />
+                {invalidMessage(state.scaleTypeRight, localRightAxisRange.yMax)}
+              </div>
+            </div>
+            <Spacer size="xs" />
             <Switch
               componentId="mlflow.charts.line_chart_configure.second_y_axis_log"
               aria-label="second-y-axis-log"
@@ -790,6 +878,53 @@ export const RunsChartsConfigureLineChart = ({
               inactiveLabel="Off"
               disabledLabel="Disabled"
             />
+            <Spacer size="xs" />
+            <div css={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+              <div>
+                <Typography.Text bold>
+                  <FormattedMessage
+                    defaultMessage="Ignore outliers"
+                    description="Runs charts > line chart > second y-axis > ignore outliers > label"
+                  />
+                </Typography.Text>
+                <Tooltip
+                  componentId="mlflow.charts.line_chart_configure.second_y_axis_ignore_outliers.tooltip"
+                  delayDuration={0}
+                  content={
+                    <FormattedMessage
+                      defaultMessage="Only display data points between the p5 and p95 of the data. This can help with chart readability in cases where outliers significantly affect the Y-axis range"
+                      description="A tooltip describing the 'Ignore Outliers' option for the second y-axis of line charts"
+                    />
+                  }
+                  side="right"
+                >
+                  <span>
+                    {' '}
+                    <QuestionMarkIcon css={styles.timeStepQuestionMarkIcon} />
+                  </span>
+                </Tooltip>
+              </div>
+              <Switch
+                componentId="mlflow.charts.line_chart_configure.second_y_axis_ignore_outliers"
+                aria-label="second-y-axis-ignore-outliers"
+                checked={state.ignoreOutliersRight}
+                onChange={updateIgnoreOutliersRight}
+                // Empty label so that the active/inactive labels are actually displayed
+                label=" "
+                activeLabel={intl.formatMessage({
+                  defaultMessage: 'On',
+                  description: 'Runs charts > line chart > second y-axis > ignore outliers > on setting label',
+                })}
+                inactiveLabel={intl.formatMessage({
+                  defaultMessage: 'Off',
+                  description: 'Runs charts > line chart > second y-axis > ignore outliers > off setting label',
+                })}
+                disabledLabel={intl.formatMessage({
+                  defaultMessage: 'Disabled',
+                  description: 'Runs charts > line chart > second y-axis > ignore outliers > disabled label',
+                })}
+              />
+            </div>
           </RunsChartsConfigureField>
         </>
       )}

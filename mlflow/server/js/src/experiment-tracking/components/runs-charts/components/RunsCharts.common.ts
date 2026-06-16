@@ -430,6 +430,59 @@ export const getLineChartLegendData = (
   });
 
 /**
+ * Resolve a (possibly one-sided) manual Y range to a concrete [min, max], filling an absent bound
+ * from the data extent of the given metrics. Plotly 2.5.1 can't autorange a single side, so we
+ * compute the fill here at the data layer (memoized on the sampled data) rather than on every chart
+ * render. Returns undefined when neither bound is set. `isLog` => the user bounds are in log10 space,
+ * so the filled data extent is logged to match.
+ */
+export const resolveManualYRange = (
+  runsData: Pick<RunsChartsRunData, 'metricsHistory'>[],
+  metricKeys: (string | undefined)[],
+  yMin: number | undefined,
+  yMax: number | undefined,
+  isLog: boolean,
+): [number, number] | undefined => {
+  const hasMin = yMin !== undefined;
+  const hasMax = yMax !== undefined;
+  if (!hasMin && !hasMax) {
+    return undefined;
+  }
+  if (hasMin && hasMax) {
+    return [yMin as number, yMax as number];
+  }
+  let dataMin = Infinity;
+  let dataMax = -Infinity;
+  for (const run of runsData) {
+    for (const key of metricKeys) {
+      const history = key ? run.metricsHistory?.[key] : undefined;
+      if (!history) {
+        continue;
+      }
+      for (let i = 0; i < history.length; i++) {
+        const v = history[i].value;
+        if (typeof v === 'number' && Number.isFinite(v)) {
+          if (v < dataMin) {
+            dataMin = v;
+          }
+          if (v > dataMax) {
+            dataMax = v;
+          }
+        }
+      }
+    }
+  }
+  if (dataMin === Infinity) {
+    return undefined;
+  }
+  if (isLog) {
+    dataMin = dataMin > 0 ? Math.log10(dataMin) : dataMin;
+    dataMax = dataMax > 0 ? Math.log10(dataMax) : dataMax;
+  }
+  return [hasMin ? (yMin as number) : dataMin, hasMax ? (yMax as number) : dataMax];
+};
+
+/**
  * Returns true if the sorted array contains duplicate values.
  * Uses simple O(n) algorithm and for loop to avoid creating a set.
  */
