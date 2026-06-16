@@ -1,4 +1,12 @@
-import { Button, CheckIcon, DropdownMenu, GearIcon, Tooltip, useDesignSystemTheme } from '@databricks/design-system';
+import {
+  Button,
+  CheckIcon,
+  DropdownMenu,
+  GearIcon,
+  Input,
+  Tooltip,
+  useDesignSystemTheme,
+} from '@databricks/design-system';
 import type { RunsChartsGlobalLineChartConfig } from '../../experiment-page/models/ExperimentPageUIState';
 import { isUndefined } from 'lodash';
 import { RunsChartsLineChartXAxisType } from './RunsCharts.common';
@@ -18,7 +26,7 @@ export const RunsChartsGlobalChartSettingsDropdown = ({
 }) => {
   const { theme } = useDesignSystemTheme();
   const intl = useIntl();
-  const { lineSmoothness, selectedXAxisMetricKey, xAxisKey } = globalLineChartConfig || {};
+  const { lineSmoothness, selectedXAxisMetricKey, xAxisKey, xRangeMin, xRangeMax } = globalLineChartConfig || {};
 
   const updateGlobalLineChartSettings = useCallback(
     (newSettings: Partial<RunsChartsGlobalLineChartConfig>) =>
@@ -139,6 +147,59 @@ export const RunsChartsGlobalChartSettingsDropdown = ({
               ))}
             </DropdownMenu.SubContent>
           </DropdownMenu.Sub>
+        </DropdownMenu.Group>
+        <DropdownMenu.Group
+          role="region"
+          aria-label={intl.formatMessage({
+            defaultMessage: 'X-axis range',
+            description:
+              'Experiment page > view controls > global settings for line chart view > manual x-axis range section label',
+          })}
+        >
+          <DropdownMenu.Label>
+            <FormattedMessage
+              defaultMessage="X-axis range"
+              description="Experiment page > view controls > global settings for line chart view > manual x-axis range section label"
+            />
+          </DropdownMenu.Label>
+          {/* Plain inputs (not menu items); stop key events so the menu's type-ahead/arrow nav doesn't fire. */}
+          <div
+            css={{ display: 'flex', gap: theme.spacing.sm, padding: theme.spacing.sm }}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <Input
+              componentId="mlflow.charts.controls.global_x_axis_min"
+              aria-label={intl.formatMessage({
+                defaultMessage: 'X-axis minimum',
+                description: 'Experiment page > global line chart settings > x-axis minimum input label',
+              })}
+              type="number"
+              placeholder={intl.formatMessage({
+                defaultMessage: 'Min',
+                description: 'Experiment page > global line chart settings > x-axis minimum input placeholder',
+              })}
+              value={xRangeMin}
+              onChange={(e) =>
+                updateGlobalLineChartSettings({ xRangeMin: e.target.value === '' ? undefined : Number(e.target.value) })
+              }
+            />
+            <Input
+              componentId="mlflow.charts.controls.global_x_axis_max"
+              aria-label={intl.formatMessage({
+                defaultMessage: 'X-axis maximum',
+                description: 'Experiment page > global line chart settings > x-axis maximum input label',
+              })}
+              type="number"
+              placeholder={intl.formatMessage({
+                defaultMessage: 'Max',
+                description: 'Experiment page > global line chart settings > x-axis maximum input placeholder',
+              })}
+              value={xRangeMax}
+              onChange={(e) =>
+                updateGlobalLineChartSettings({ xRangeMax: e.target.value === '' ? undefined : Number(e.target.value) })
+              }
+            />
+          </div>
         </DropdownMenu.Group>
         <DropdownMenu.Group
           role="region"

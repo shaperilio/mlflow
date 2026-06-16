@@ -13,7 +13,15 @@ export const useLineChartGlobalConfig = (
   globalLineChartConfig?: RunsChartsGlobalLineChartConfig,
 ) =>
   useMemo(() => {
-    const result = pick(originalCardConfig, ['xAxisKey', 'selectedXAxisMetricKey', 'lineSmoothness']);
+    const result: Pick<RunsChartsLineCardConfig, 'xAxisKey' | 'selectedXAxisMetricKey' | 'lineSmoothness'> & {
+      xRangeMin?: number;
+      xRangeMax?: number;
+    } = {
+      ...pick(originalCardConfig, ['xAxisKey', 'selectedXAxisMetricKey', 'lineSmoothness']),
+      // The X range defaults to the chart's own manual range.
+      xRangeMin: originalCardConfig.range?.xMin,
+      xRangeMax: originalCardConfig.range?.xMax,
+    };
 
     if (!globalLineChartConfig) {
       return result;
@@ -30,6 +38,11 @@ export const useLineChartGlobalConfig = (
       const globalSelectedXAxisMetricKey = globalLineChartConfig?.selectedXAxisMetricKey;
       if (globalXAxisKey === RunsChartsLineChartXAxisType.METRIC && globalSelectedXAxisMetricKey) {
         result.selectedXAxisMetricKey = globalSelectedXAxisMetricKey;
+      }
+      // When the chart defers its X axis to workspace settings, also take the global manual range.
+      if (!isUndefined(globalLineChartConfig.xRangeMin) || !isUndefined(globalLineChartConfig.xRangeMax)) {
+        result.xRangeMin = globalLineChartConfig.xRangeMin;
+        result.xRangeMax = globalLineChartConfig.xRangeMax;
       }
     }
 
