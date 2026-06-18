@@ -36,7 +36,7 @@ const RunsChartsConfigureLineChartPreviewImpl = ({
 
   metricsByRunUuid: Record<string, MetricHistoryByName>;
 }) => {
-  const { lineSmoothness, selectedXAxisMetricKey, xAxisKey } = useLineChartGlobalConfig(
+  const { lineSmoothness, selectedXAxisMetricKey, xAxisKey, legendLabelTemplate } = useLineChartGlobalConfig(
     cardConfig,
     globalLineChartConfig,
   );
@@ -198,6 +198,7 @@ const RunsChartsConfigureLineChartPreviewImpl = ({
       displayPoints={cardConfig.displayPoints}
       yAxisExpressions={cardConfig.yAxisExpressions}
       yAxisKey={cardConfig.yAxisKey}
+      legendLabelTemplate={legendLabelTemplate}
       showSecondYAxis={cardConfig.showSecondYAxis}
       selectedMetricKeysRight={cardConfig.selectedMetricKeysRight}
       scaleTypeRight={cardConfig.scaleTypeRight}

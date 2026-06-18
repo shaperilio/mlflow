@@ -764,6 +764,17 @@ export class RunsChartsLineCardConfig extends RunsChartsCardConfig {
     metric: string;
     type: 'node' | 'gpu';
   };
+
+  /**
+   * Legend label template for this chart (used when useGlobalLegendLabel is false). Tokens:
+   * {run}, {metric}, {params.<name>}, {tags.<name>}. See resolveLegendLabelTemplate.
+   */
+  legendLabelTemplate?: string = undefined;
+
+  /**
+   * Whether to use the workspace legend label template instead of this chart's own.
+   */
+  useGlobalLegendLabel?: boolean = true;
 }
 
 // TODO: add configuration fields relevant to bar chart

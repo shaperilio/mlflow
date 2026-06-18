@@ -70,7 +70,6 @@ describe('useCompareRunsAllTracesTooltipData', () => {
           { displayName: 'Second trace', uuid: 'second-trace' },
         ],
         xAxisKeyLabel: 'Step',
-        containsMultipleMetricKeys: false,
         xAxisKey: RunsChartsLineChartXAxisType.STEP,
         setHoveredPointIndex: () => {},
       });

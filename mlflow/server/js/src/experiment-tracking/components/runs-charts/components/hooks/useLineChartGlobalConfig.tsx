@@ -13,14 +13,21 @@ export const useLineChartGlobalConfig = (
   globalLineChartConfig?: RunsChartsGlobalLineChartConfig,
 ) =>
   useMemo(() => {
+    // Default to true when unset: the field is newer than many persisted chart configs, where it's
+    // undefined — those charts should still inherit the workspace legend label.
+    const useGlobalLegendLabel = originalCardConfig.useGlobalLegendLabel ?? true;
+
     const result: Pick<RunsChartsLineCardConfig, 'xAxisKey' | 'selectedXAxisMetricKey' | 'lineSmoothness'> & {
       xRangeMin?: number;
       xRangeMax?: number;
+      legendLabelTemplate?: string;
     } = {
       ...pick(originalCardConfig, ['xAxisKey', 'selectedXAxisMetricKey', 'lineSmoothness']),
       // The X range defaults to the chart's own manual range.
       xRangeMin: originalCardConfig.range?.xMin,
       xRangeMax: originalCardConfig.range?.xMax,
+      // The legend label defaults to the chart's own template (used when it doesn't defer to workspace).
+      legendLabelTemplate: useGlobalLegendLabel ? undefined : originalCardConfig.legendLabelTemplate,
     };
 
     if (!globalLineChartConfig) {
@@ -31,6 +38,10 @@ export const useLineChartGlobalConfig = (
 
     if (originalCardConfig.useGlobalLineSmoothing && !isUndefined(globalLineChartConfig.lineSmoothness)) {
       result.lineSmoothness = globalLineChartConfig.lineSmoothness;
+    }
+
+    if (useGlobalLegendLabel) {
+      result.legendLabelTemplate = globalLineChartConfig.legendLabelTemplate;
     }
 
     if (!isUndefined(globalXAxisKey) && originalCardConfig.useGlobalXaxisKey) {

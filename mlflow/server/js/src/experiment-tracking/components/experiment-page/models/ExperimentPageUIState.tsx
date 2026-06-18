@@ -71,6 +71,12 @@ export type RunsChartsGlobalLineChartConfig = Partial<
    */
   xRangeMin?: number;
   xRangeMax?: number;
+
+  /**
+   * Workspace default for the line-chart legend label template (see resolveLegendLabelTemplate).
+   * Charts use it unless they override with their own (useGlobalLegendLabel === false).
+   */
+  legendLabelTemplate?: string;
 };
 
 /**
