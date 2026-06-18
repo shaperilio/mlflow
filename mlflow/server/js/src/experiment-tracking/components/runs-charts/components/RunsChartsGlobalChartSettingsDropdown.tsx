@@ -9,7 +9,8 @@ import {
 } from '@databricks/design-system';
 import type { RunsChartsGlobalLineChartConfig } from '../../experiment-page/models/ExperimentPageUIState';
 import { isUndefined } from 'lodash';
-import { DEFAULT_LEGEND_LABEL_TEMPLATE, RunsChartsLineChartXAxisType } from './RunsCharts.common';
+import { RunsChartsLineChartXAxisType } from './RunsCharts.common';
+import { RunsChartsLegendTemplateInput } from './RunsChartsLegendTemplateInput';
 import { useCallback } from 'react';
 import { LineSmoothSlider } from '../../LineSmoothSlider';
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -18,9 +19,13 @@ import type { RunsChartsUIConfigurationSetter } from '../hooks/useRunsChartsUICo
 export const RunsChartsGlobalChartSettingsDropdown = ({
   globalLineChartConfig,
   metricKeyList,
+  paramKeys = [],
+  tagKeys = [],
   updateUIState,
 }: {
   metricKeyList: string[];
+  paramKeys?: string[];
+  tagKeys?: string[];
   globalLineChartConfig?: RunsChartsGlobalLineChartConfig;
   updateUIState: (stateSetter: RunsChartsUIConfigurationSetter) => void;
 }) => {
@@ -240,28 +245,23 @@ export const RunsChartsGlobalChartSettingsDropdown = ({
               description="Experiment page > view controls > global settings for line chart view > legend label template section"
             />
           </DropdownMenu.Label>
-          {/* Plain input (not a menu item). The dropdown's type-ahead grabs letter keys, so stop the
-              keydown on the input itself — both the React synthetic event and the native one. */}
           <div css={{ padding: theme.spacing.sm }}>
-            <Input
+            <RunsChartsLegendTemplateInput
               componentId="mlflow.charts.controls.global_legend_label"
-              aria-label={intl.formatMessage({
+              ariaLabel={intl.formatMessage({
                 defaultMessage: 'Legend label template',
                 description: 'Experiment page > global line chart settings > legend label template input',
               })}
-              placeholder={DEFAULT_LEGEND_LABEL_TEMPLATE}
               value={legendLabelTemplate ?? ''}
-              onChange={(e) => updateGlobalLineChartSettings({ legendLabelTemplate: e.target.value })}
-              onKeyDown={(e) => {
-                e.stopPropagation();
-                e.nativeEvent.stopImmediatePropagation();
-              }}
+              onChange={(legendLabelTemplate) => updateGlobalLineChartSettings({ legendLabelTemplate })}
+              paramKeys={paramKeys}
+              tagKeys={tagKeys}
             />
             <div css={{ marginTop: theme.spacing.xs, fontSize: theme.typography.fontSizeSm, color: theme.colors.textSecondary }}>
               <FormattedMessage
-                defaultMessage="Tokens: {tokens}"
+                defaultMessage="Type {brace} for suggestions, e.g. {tokens}"
                 description="Experiment page > global line chart settings > legend label available tokens hint"
-                values={{ tokens: '{run}, {metric}, {params.NAME}, {tags.NAME}' }}
+                values={{ brace: '{', tokens: '{run}, {metric}, {params.NAME}, {tags.NAME}' }}
               />
             </div>
           </div>

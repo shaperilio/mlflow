@@ -420,6 +420,29 @@ export const resolveLegendLabelTemplate = (
     return '';
   });
 
+/**
+ * Collect the sorted, de-duplicated param and tag keys across a set of runs. Used to populate the
+ * legend-label-template autocomplete with `{params.<name>}` / `{tags.<name>}` suggestions.
+ */
+export const getLegendTemplateTokenKeys = (
+  runsData: Pick<RunsChartsRunData, 'params' | 'tags'>[],
+): { paramKeys: string[]; tagKeys: string[] } => {
+  const paramKeys = new Set<string>();
+  const tagKeys = new Set<string>();
+  runsData.forEach((run) => {
+    if (run.params) {
+      Object.keys(run.params).forEach((key) => paramKeys.add(key));
+    }
+    if (run.tags) {
+      Object.keys(run.tags).forEach((key) => tagKeys.add(key));
+    }
+  });
+  return {
+    paramKeys: Array.from(paramKeys).sort(),
+    tagKeys: Array.from(tagKeys).sort(),
+  };
+};
+
 export const getLineChartLegendData = (
   runsData: (Pick<RunsChartsRunData, 'runInfo' | 'color' | 'metricsHistory' | 'displayName' | 'uuid'> &
     Partial<Pick<RunsChartsRunData, 'params' | 'tags'>>)[],
