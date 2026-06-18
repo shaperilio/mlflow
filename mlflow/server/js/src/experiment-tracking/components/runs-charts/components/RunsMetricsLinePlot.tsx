@@ -382,6 +382,11 @@ export interface RunsMetricsLinePlotProps extends RunsPlotsCommonProps {
   yAxisExpressions?: RunsChartsLineChartExpression[];
 
   /**
+   * Effective legend label template, resolved per-trace. Undefined => default "<run> (<metric>)".
+   */
+  legendLabelTemplate?: string;
+
+  /**
    * Name of the metric to use for the X axis. Used when xAxisKey is set to 'metric'
    */
   selectedXAxisMetricKey: string;
@@ -389,7 +394,10 @@ export interface RunsMetricsLinePlotProps extends RunsPlotsCommonProps {
   /**
    * Array of runs data with corresponding values
    */
-  runsData: Omit<RunsChartsRunData, 'metrics' | 'params' | 'tags' | 'images'>[];
+  // Keep params/tags (optional) so the legend label template can resolve {params.*} / {tags.*} tokens;
+  // omit only the heavy/unused metrics & images.
+  runsData: (Omit<RunsChartsRunData, 'metrics' | 'images' | 'params' | 'tags'> &
+    Partial<Pick<RunsChartsRunData, 'params' | 'tags'>>)[];
 
   /**
    * Currently visible range on x-axis.
@@ -532,6 +540,7 @@ export const RunsMetricsLinePlot = React.memo(
     rangeRight,
     yAxisKey = RunsChartsLineChartYAxisType.METRIC,
     yAxisExpressions = [],
+    legendLabelTemplate,
     selectedXAxisMetricKey = '',
     lineSmoothness = 70,
     className,
@@ -866,13 +875,6 @@ export const RunsMetricsLinePlot = React.memo(
       });
     }, [layoutWidth, layoutHeight, effectiveMargin, xAxisParams, yAxisParams, yAxis2Params, width, height, xAxisKeyLabel]);
 
-    // Count both axes' metrics: with one metric on each axis the scanline should still label rows by
-    // their full legend text (e.g. "(Reduction metric)" vs "(Learning rate)"), not just the run name.
-    const containsMultipleMetricKeys = useMemo(
-      () => (selectedMetricKeys?.length || 0) + (showSecondYAxis ? selectedMetricKeysRight?.length || 0 : 0) > 1,
-      [selectedMetricKeys, showSecondYAxis, selectedMetricKeysRight],
-    );
-
     const unhoverCallback = useCallback(() => {
       onUnhover?.();
       setHoveredPointIndex(-1);
@@ -926,8 +928,18 @@ export const RunsMetricsLinePlot = React.memo(
           yAxisKey,
           yAxisExpressions,
           showSecondYAxis ? selectedMetricKeysRight : undefined,
+          legendLabelTemplate,
         ),
-      [runsData, selectedMetricKeys, metricKey, yAxisKey, yAxisExpressions, showSecondYAxis, selectedMetricKeysRight],
+      [
+        runsData,
+        selectedMetricKeys,
+        metricKey,
+        yAxisKey,
+        yAxisExpressions,
+        showSecondYAxis,
+        selectedMetricKeysRight,
+        legendLabelTemplate,
+      ],
     );
 
     // Compute the smart-formatting spec separately per axis (from each axis's own y-values), so the
@@ -952,7 +964,6 @@ export const RunsMetricsLinePlot = React.memo(
       legendLabelData,
       plotData: allTraces,
       runsData,
-      containsMultipleMetricKeys,
       onHover,
       onUnhover: unhoverCallback,
       xAxisKeyLabel,

@@ -31,7 +31,10 @@ import {
 } from '../../runs-charts.types';
 import { RunsChartsConfigureField } from './RunsChartsConfigure.common';
 import { shouldEnableChartExpressions } from '@mlflow/mlflow/src/common/utils/FeatureUtils';
-import { RunsChartsLineChartXAxisType } from '@mlflow/mlflow/src/experiment-tracking/components/runs-charts/components/RunsCharts.common';
+import {
+  DEFAULT_LEGEND_LABEL_TEMPLATE,
+  RunsChartsLineChartXAxisType,
+} from '@mlflow/mlflow/src/experiment-tracking/components/runs-charts/components/RunsCharts.common';
 import { LineSmoothSlider } from '@mlflow/mlflow/src/experiment-tracking/components/LineSmoothSlider';
 import { isUndefined } from 'lodash';
 import { RunsChartsYAxisMetricAndExpressionSelector } from '../RunsChartsYAxisMetricAndExpressionSelector';
@@ -287,6 +290,20 @@ export const RunsChartsConfigureLineChart = ({
   const updateIgnoreOutliersRight = useCallback(
     (ignoreOutliersRight: boolean) => {
       onStateChange((current) => ({ ...(current as RunsChartsLineCardConfig), ignoreOutliersRight }));
+    },
+    [onStateChange],
+  );
+
+  const updateUseGlobalLegendLabel = useCallback(
+    (useGlobalLegendLabel: boolean) => {
+      onStateChange((current) => ({ ...(current as RunsChartsLineCardConfig), useGlobalLegendLabel }));
+    },
+    [onStateChange],
+  );
+
+  const updateLegendLabelTemplate = useCallback(
+    (legendLabelTemplate: string) => {
+      onStateChange((current) => ({ ...(current as RunsChartsLineCardConfig), legendLabelTemplate }));
     },
     [onStateChange],
   );
@@ -929,6 +946,38 @@ export const RunsChartsConfigureLineChart = ({
             </div>
           </RunsChartsConfigureField>
         </>
+      )}
+      <Typography.Title level={4} color="secondary" css={{ paddingTop: theme.spacing.lg }}>
+        Legend
+      </Typography.Title>
+      <RunsChartsConfigureField title="Use workspace legend label" compact>
+        <Switch
+          componentId="mlflow.charts.line_chart_configure.use_global_legend_label"
+          aria-label="use-workspace-legend-label"
+          checked={state.useGlobalLegendLabel ?? true}
+          onChange={updateUseGlobalLegendLabel}
+          activeLabel="On"
+          inactiveLabel="Off"
+          disabledLabel="Disabled"
+        />
+      </RunsChartsConfigureField>
+      {!state.useGlobalLegendLabel && (
+        <RunsChartsConfigureField title="Label template" compact>
+          <Input
+            componentId="mlflow.charts.line_chart_configure.legend_label_template"
+            aria-label="legend-label-template"
+            placeholder={DEFAULT_LEGEND_LABEL_TEMPLATE}
+            value={state.legendLabelTemplate ?? ''}
+            onChange={(e) => updateLegendLabelTemplate(e.target.value)}
+          />
+          <div css={{ marginTop: theme.spacing.xs, fontSize: theme.typography.fontSizeSm, color: theme.colors.textSecondary }}>
+            <FormattedMessage
+              defaultMessage="Tokens: {tokens}"
+              description="Runs charts > line chart > legend label template available tokens hint"
+              values={{ tokens: '{run}, {metric}, {params.NAME}, {tags.NAME}' }}
+            />
+          </div>
+        </RunsChartsConfigureField>
       )}
       <Typography.Title level={4} color="secondary" css={{ paddingTop: theme.spacing.lg }}>
         Advanced

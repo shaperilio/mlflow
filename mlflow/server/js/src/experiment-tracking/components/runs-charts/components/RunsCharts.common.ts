@@ -383,8 +383,46 @@ export const getLegendDataFromRuns = (
     }),
   );
 
+/** Default legend label template — reproduces the historical "<run> (<metric>)" label. */
+export const DEFAULT_LEGEND_LABEL_TEMPLATE = '{run} ({metric})';
+
+/**
+ * Resolve a legend label template against a single trace. Supported tokens:
+ *   {run}            run / group display name
+ *   {metric}         metric (or expression) key for the trace
+ *   {params.<name>}  value of the run param <name>
+ *   {tags.<name>}    value of the run tag <name>
+ * Unknown tokens and missing values render as empty strings (the template is shown literally).
+ */
+export const resolveLegendLabelTemplate = (
+  template: string,
+  context: {
+    run: string;
+    metric: string;
+    params?: RunsChartsRunData['params'];
+    tags?: RunsChartsRunData['tags'];
+  },
+): string =>
+  template.replace(/\{([^}]*)\}/g, (_match, rawToken) => {
+    const token = rawToken.trim();
+    if (token === 'run') {
+      return context.run ?? '';
+    }
+    if (token === 'metric') {
+      return context.metric ?? '';
+    }
+    if (token.startsWith('params.')) {
+      return String(context.params?.[token.slice('params.'.length)]?.value ?? '');
+    }
+    if (token.startsWith('tags.')) {
+      return String(context.tags?.[token.slice('tags.'.length)]?.value ?? '');
+    }
+    return '';
+  });
+
 export const getLineChartLegendData = (
-  runsData: Pick<RunsChartsRunData, 'runInfo' | 'color' | 'metricsHistory' | 'displayName' | 'uuid'>[],
+  runsData: (Pick<RunsChartsRunData, 'runInfo' | 'color' | 'metricsHistory' | 'displayName' | 'uuid'> &
+    Partial<Pick<RunsChartsRunData, 'params' | 'tags'>>)[],
   selectedMetricKeys: string[] | undefined,
   metricKey: string,
   yAxisKey: RunsChartsLineChartYAxisType,
@@ -392,16 +430,27 @@ export const getLineChartLegendData = (
   // Metrics drawn on the optional second (right-hand) Y axis. Appended so they appear in the legend
   // and the scanline tooltip alongside the primary-axis series.
   selectedMetricKeysRight?: string[],
-): LegendLabelData[] =>
-  runsData.flatMap((runEntry): LegendLabelData[] => {
+  // Effective legend label template (per-chart or workspace). Undefined => historical default.
+  legendTemplate?: string,
+): LegendLabelData[] => {
+  const template = legendTemplate ?? DEFAULT_LEGEND_LABEL_TEMPLATE;
+  return runsData.flatMap((runEntry): LegendLabelData[] => {
     if (!runEntry.metricsHistory) {
       return [];
     }
 
+    const labelFor = (metric: string) =>
+      resolveLegendLabelTemplate(template, {
+        run: runEntry.displayName,
+        metric,
+        params: runEntry.params,
+        tags: runEntry.tags,
+      });
+
     let leftEntries: LegendLabelData[];
     if (shouldEnableChartExpressions() && yAxisKey === RunsChartsLineChartYAxisType.EXPRESSION) {
       leftEntries = yAxisExpressions.map((expression, idx) => ({
-        label: `${runEntry.displayName} (${expression.expression})`,
+        label: labelFor(expression.expression),
         color: runEntry.color ?? '',
         dashStyle: lineDashStyles[idx % lineDashStyles.length],
         metricKey: expression.expression,
@@ -409,25 +458,26 @@ export const getLineChartLegendData = (
       }));
     } else {
       const metricKeys = selectedMetricKeys ?? [metricKey];
-      leftEntries = metricKeys.map((metricKey, idx) => ({
-        label: `${runEntry.displayName} (${metricKey})`,
+      leftEntries = metricKeys.map((metric, idx) => ({
+        label: labelFor(metric),
         color: runEntry.color ?? '',
         dashStyle: lineDashStyles[idx % lineDashStyles.length],
-        metricKey,
+        metricKey: metric,
         uuid: runEntry.uuid,
       }));
     }
 
-    const rightEntries: LegendLabelData[] = (selectedMetricKeysRight ?? []).map((metricKey, idx) => ({
-      label: `${runEntry.displayName} (${metricKey})`,
+    const rightEntries: LegendLabelData[] = (selectedMetricKeysRight ?? []).map((metric, idx) => ({
+      label: labelFor(metric),
       color: runEntry.color ?? '',
       dashStyle: lineDashStyles[idx % lineDashStyles.length],
-      metricKey,
+      metricKey: metric,
       uuid: runEntry.uuid,
     }));
 
     return [...leftEntries, ...rightEntries];
   });
+};
 
 /**
  * Resolve a (possibly one-sided) manual Y range to a concrete [min, max], filling an absent bound

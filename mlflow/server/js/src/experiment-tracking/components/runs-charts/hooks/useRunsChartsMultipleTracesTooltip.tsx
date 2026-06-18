@@ -41,7 +41,6 @@ export const useRunsMultipleTracesTooltipData = ({
   runsData,
   plotData,
   legendLabelData,
-  containsMultipleMetricKeys,
   xAxisKeyLabel,
   xAxisKey,
   disabled = false,
@@ -53,7 +52,6 @@ export const useRunsMultipleTracesTooltipData = ({
 }: Pick<RunsMetricsLinePlotProps, 'runsData' | 'onHover' | 'onUnhover'> & {
   plotData: LineChartTraceData[];
   legendLabelData: LegendLabelData[];
-  containsMultipleMetricKeys?: boolean;
   xAxisKeyLabel: string;
   disabled?: boolean;
   xAxisKey: RunsChartsLineChartXAxisType;
@@ -306,9 +304,9 @@ export const useRunsMultipleTracesTooltipData = ({
             return undefined;
           }
 
-          // Determine the display name of the metric - if there are multiple metrics, use the legend label,
-          // otherwise use the display name of the corresponding data entry.
-          const displayName = containsMultipleMetricKeys ? legendEntry.label : correspondingDataEntry?.displayName;
+          // Always use the legend label so the scanline matches the bottom legend (incl. custom legend
+          // templates). Falls back to the run's display name only if the label is somehow empty.
+          const displayName = legendEntry.label || correspondingDataEntry?.displayName;
 
           // Find the value of the corresponding data trace at the closest X value
           const xIndex = correspondingDataTrace.x?.indexOf(closestXValue);
@@ -415,7 +413,6 @@ export const useRunsMultipleTracesTooltipData = ({
     initializedFigure,
     setupBoundaries,
     onHover,
-    containsMultipleMetricKeys,
     currentHoveredDataPoint,
     disabled,
     xAxisKey,

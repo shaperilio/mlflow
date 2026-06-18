@@ -9,7 +9,7 @@ import {
 } from '@databricks/design-system';
 import type { RunsChartsGlobalLineChartConfig } from '../../experiment-page/models/ExperimentPageUIState';
 import { isUndefined } from 'lodash';
-import { RunsChartsLineChartXAxisType } from './RunsCharts.common';
+import { DEFAULT_LEGEND_LABEL_TEMPLATE, RunsChartsLineChartXAxisType } from './RunsCharts.common';
 import { useCallback } from 'react';
 import { LineSmoothSlider } from '../../LineSmoothSlider';
 import { FormattedMessage, useIntl } from 'react-intl';
@@ -26,7 +26,8 @@ export const RunsChartsGlobalChartSettingsDropdown = ({
 }) => {
   const { theme } = useDesignSystemTheme();
   const intl = useIntl();
-  const { lineSmoothness, selectedXAxisMetricKey, xAxisKey, xRangeMin, xRangeMax } = globalLineChartConfig || {};
+  const { lineSmoothness, selectedXAxisMetricKey, xAxisKey, xRangeMin, xRangeMax, legendLabelTemplate } =
+    globalLineChartConfig || {};
 
   const updateGlobalLineChartSettings = useCallback(
     (newSettings: Partial<RunsChartsGlobalLineChartConfig>) =>
@@ -223,6 +224,46 @@ export const RunsChartsGlobalChartSettingsDropdown = ({
               onChange={(lineSmoothness) => updateGlobalLineChartSettings({ lineSmoothness })}
               value={lineSmoothness ? lineSmoothness : 0}
             />
+          </div>
+        </DropdownMenu.Group>
+        <DropdownMenu.Group
+          role="region"
+          aria-label={intl.formatMessage({
+            defaultMessage: 'Legend label',
+            description:
+              'Experiment page > view controls > global settings for line chart view > legend label template section',
+          })}
+        >
+          <DropdownMenu.Label>
+            <FormattedMessage
+              defaultMessage="Legend label"
+              description="Experiment page > view controls > global settings for line chart view > legend label template section"
+            />
+          </DropdownMenu.Label>
+          {/* Plain input (not a menu item). The dropdown's type-ahead grabs letter keys, so stop the
+              keydown on the input itself — both the React synthetic event and the native one. */}
+          <div css={{ padding: theme.spacing.sm }}>
+            <Input
+              componentId="mlflow.charts.controls.global_legend_label"
+              aria-label={intl.formatMessage({
+                defaultMessage: 'Legend label template',
+                description: 'Experiment page > global line chart settings > legend label template input',
+              })}
+              placeholder={DEFAULT_LEGEND_LABEL_TEMPLATE}
+              value={legendLabelTemplate ?? ''}
+              onChange={(e) => updateGlobalLineChartSettings({ legendLabelTemplate: e.target.value })}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                e.nativeEvent.stopImmediatePropagation();
+              }}
+            />
+            <div css={{ marginTop: theme.spacing.xs, fontSize: theme.typography.fontSizeSm, color: theme.colors.textSecondary }}>
+              <FormattedMessage
+                defaultMessage="Tokens: {tokens}"
+                description="Experiment page > global line chart settings > legend label available tokens hint"
+                values={{ tokens: '{run}, {metric}, {params.NAME}, {tags.NAME}' }}
+              />
+            </div>
           </div>
         </DropdownMenu.Group>
       </DropdownMenu.Content>

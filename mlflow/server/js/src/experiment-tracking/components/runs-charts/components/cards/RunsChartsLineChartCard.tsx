@@ -102,10 +102,8 @@ export const RunsChartsLineChartCard = ({
   positionInSection,
   ...reorderProps
 }: RunsChartsLineChartCardProps) => {
-  const { xAxisKey, selectedXAxisMetricKey, lineSmoothness, xRangeMin, xRangeMax } = useLineChartGlobalConfig(
-    config,
-    globalLineChartConfig,
-  );
+  const { xAxisKey, selectedXAxisMetricKey, lineSmoothness, xRangeMin, xRangeMax, legendLabelTemplate } =
+    useLineChartGlobalConfig(config, globalLineChartConfig);
 
   // Effective manual X range (from the chart, or from workspace settings when the chart defers its X
   // axis). Both bounds required; zoom (xRangeLocal) takes precedence when set.
@@ -398,6 +396,7 @@ export const RunsChartsLineChartCard = ({
           xAxisScaleType={config.xAxisScaleType}
           yAxisKey={config.yAxisKey}
           yAxisExpressions={config.yAxisExpressions}
+          legendLabelTemplate={legendLabelTemplate}
           showSecondYAxis={config.showSecondYAxis}
           selectedMetricKeysRight={config.selectedMetricKeysRight}
           scaleTypeRight={config.scaleTypeRight}
