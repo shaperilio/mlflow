@@ -36,6 +36,7 @@ import {
   RunsChartsLineChartXAxisType,
 } from '@mlflow/mlflow/src/experiment-tracking/components/runs-charts/components/RunsCharts.common';
 import { LineSmoothSlider } from '@mlflow/mlflow/src/experiment-tracking/components/LineSmoothSlider';
+import { RunsChartsLegendTemplateInput } from '@mlflow/mlflow/src/experiment-tracking/components/runs-charts/components/RunsChartsLegendTemplateInput';
 import { isUndefined } from 'lodash';
 import { RunsChartsYAxisMetricAndExpressionSelector } from '../RunsChartsYAxisMetricAndExpressionSelector';
 
@@ -125,8 +126,12 @@ export const RunsChartsConfigureLineChart = ({
   state,
   onStateChange,
   metricKeyList,
+  paramKeys = [],
+  tagKeys = [],
 }: {
   metricKeyList: string[];
+  paramKeys?: string[];
+  tagKeys?: string[];
   state: Partial<RunsChartsLineCardConfig>;
   onStateChange: (setter: (current: RunsChartsCardConfig) => RunsChartsLineCardConfig) => void;
 }) => {
@@ -963,18 +968,19 @@ export const RunsChartsConfigureLineChart = ({
       </RunsChartsConfigureField>
       {!state.useGlobalLegendLabel && (
         <RunsChartsConfigureField title="Label template" compact>
-          <Input
+          <RunsChartsLegendTemplateInput
             componentId="mlflow.charts.line_chart_configure.legend_label_template"
-            aria-label="legend-label-template"
-            placeholder={DEFAULT_LEGEND_LABEL_TEMPLATE}
+            ariaLabel="legend-label-template"
             value={state.legendLabelTemplate ?? ''}
-            onChange={(e) => updateLegendLabelTemplate(e.target.value)}
+            onChange={updateLegendLabelTemplate}
+            paramKeys={paramKeys}
+            tagKeys={tagKeys}
           />
           <div css={{ marginTop: theme.spacing.xs, fontSize: theme.typography.fontSizeSm, color: theme.colors.textSecondary }}>
             <FormattedMessage
-              defaultMessage="Tokens: {tokens}"
+              defaultMessage="Type {brace} for suggestions, e.g. {tokens}"
               description="Runs charts > line chart > legend label template available tokens hint"
-              values={{ tokens: '{run}, {metric}, {params.NAME}, {tags.NAME}' }}
+              values={{ brace: '{', tokens: '{run}, {metric}, {params.NAME}, {tags.NAME}' }}
             />
           </div>
         </RunsChartsConfigureField>

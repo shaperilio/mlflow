@@ -8,7 +8,11 @@ import { RunsChartsCardConfig } from '../runs-charts/runs-charts.types';
 import type { RunsChartType } from '../runs-charts/runs-charts.types';
 import { type SerializedRunsChartsCardConfigCard } from '../runs-charts/runs-charts.types';
 import { RunsChartsConfigureModal } from '../runs-charts/components/RunsChartsConfigureModal';
-import { isEmptyChartCard, type RunsChartsRunData } from '../runs-charts/components/RunsCharts.common';
+import {
+  getLegendTemplateTokenKeys,
+  isEmptyChartCard,
+  type RunsChartsRunData,
+} from '../runs-charts/components/RunsCharts.common';
 import {
   AUTOML_EVALUATION_METRIC_TAG,
   LOG_IMAGE_TAG_INDICATOR,
@@ -253,6 +257,11 @@ const RunsCompareImpl = ({
     return [...groupChartDataEntries, ...remainingRuns];
   }, [groupBy, comparedRuns, latestMetricsByRunUuid, paramsByRunUuid, tagsByRunUuid, imagesByRunUuid, getRunColor]);
 
+  const { paramKeys: legendParamKeys, tagKeys: legendTagKeys } = useMemo(
+    () => getLegendTemplateTokenKeys(chartData),
+    [chartData],
+  );
+
   const filteredImageData = chartData.filter((run) => !run.hidden && run.tags[LOG_IMAGE_TAG_INDICATOR]);
   usePopulateImagesByRunUuid({
     runUuids: filteredImageData.map((run) => run.uuid),
@@ -418,6 +427,8 @@ const RunsCompareImpl = ({
         <RunsChartsGlobalChartSettingsDropdown
           updateUIState={updateChartsUIState}
           metricKeyList={metricKeyList}
+          paramKeys={legendParamKeys}
+          tagKeys={legendTagKeys}
           globalLineChartConfig={globalLineChartConfig}
         />
       </div>

@@ -26,6 +26,7 @@ import { ReactComponent as ChartImageIcon } from '../../../../common/static/char
 import { RunsChartsConfigureBarChart } from './config/RunsChartsConfigureBarChart';
 import { RunsChartsConfigureParallelChart } from './config/RunsChartsConfigureParallelChart';
 import type { RunsChartsRunData } from './RunsCharts.common';
+import { getLegendTemplateTokenKeys } from './RunsCharts.common';
 import { RunsChartsConfigureField } from './config/RunsChartsConfigure.common';
 import { RunsChartsConfigureLineChart } from './config/RunsChartsConfigureLineChart';
 import { RunsChartsConfigureLineChartPreview } from './config/RunsChartsConfigureLineChart.preview';
@@ -124,6 +125,11 @@ export const RunsChartsConfigureModal = ({
     return Array.from(imageKeys).sort();
   }, [previewData]);
 
+  const { paramKeys: legendParamKeys, tagKeys: legendTagKeys } = useMemo(
+    () => getLegendTemplateTokenKeys(previewData),
+    [previewData],
+  );
+
   const renderConfigOptionsforChartType = (type?: RunsChartType) => {
     if (type === RunsChartType.BAR) {
       return (
@@ -149,6 +155,8 @@ export const RunsChartsConfigureModal = ({
       return (
         <RunsChartsConfigureLineChart
           metricKeyList={metricKeyList}
+          paramKeys={legendParamKeys}
+          tagKeys={legendTagKeys}
           state={currentFormState as RunsChartsLineCardConfig}
           onStateChange={setCurrentFormState}
         />

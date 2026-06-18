@@ -12,6 +12,7 @@ import { RunsChartsTooltipWrapper } from '../runs-charts/hooks/useRunsChartsTool
 import { RunViewChartTooltipBody } from './RunViewChartTooltipBody';
 import { RunsChartType, RunsChartsCardConfig } from '../runs-charts/runs-charts.types';
 import type { RunsChartsRunData } from '../runs-charts/components/RunsCharts.common';
+import { getLegendTemplateTokenKeys } from '../runs-charts/components/RunsCharts.common';
 import { RunsChartsLineChartXAxisType } from '../runs-charts/components/RunsCharts.common';
 import type { ExperimentRunsChartsUIConfiguration } from '../experiment-page/models/ExperimentPageUIState';
 import { RunsChartsSectionAccordion } from '../runs-charts/components/sections/RunsChartsSectionAccordion';
@@ -146,6 +147,8 @@ const RunViewMetricChartsImpl = ({
     [runInfo, latestMetrics, params, tags, imagesByRunUuid, theme],
   );
 
+  const legendTokenKeys = useMemo(() => getLegendTemplateTokenKeys(chartData), [chartData]);
+
   useEffect(() => {
     if ((!compareRunSections || !compareRunCharts) && chartData.length > 0) {
       const { resultChartSet, resultSectionSet } = RunsChartsCardConfig.getBaseChartAndSectionConfigs({
@@ -244,6 +247,8 @@ const RunViewMetricChartsImpl = ({
         )}
         <RunsChartsGlobalChartSettingsDropdown
           metricKeyList={metricKeys}
+          paramKeys={legendTokenKeys.paramKeys}
+          tagKeys={legendTokenKeys.tagKeys}
           globalLineChartConfig={chartUIState.globalLineChartConfig}
           updateUIState={updateChartsUIState}
         />

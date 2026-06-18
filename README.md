@@ -25,7 +25,7 @@ Customizations atop the 3.9.0 release
 - Allow two y axes in line plots.
 - Adding a new plot now puts it at the start of a section by default.
 - Allow custom X ranges both at workspace and plot level.
-- Custom legend text, including values of params, etc., globally and per-chart.
+- Custom legend text, including values of params, etc., globally and per-chart, with auto-complete
 
 ### Deployment
 - [deploy](deploy/) directory to serve this frontend against an already-running backend; you can go
