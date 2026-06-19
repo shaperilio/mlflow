@@ -179,6 +179,21 @@ const RunsCompareImpl = ({
   const [search, setSearch] = useState('');
   const { formatMessage } = useIntl();
 
+  // Width/height ratio of the edited card in the grid, so the configure-modal preview matches how the
+  // chart looks there. Card width is the section's column width (grid spans ~the full window); height is
+  // the section's cardHeight. Defaults: 3 columns, 360px (see RunsChartsDraggableCardsGridSection).
+  const previewAspectRatio = useMemo(() => {
+    if (!configuredCardConfig) {
+      return undefined;
+    }
+    const section = compareRunSections?.find(({ uuid }) => uuid === configuredCardConfig.metricSectionId);
+    const columns = section?.columns ?? 3;
+    const cardHeight = section?.cardHeight ?? 360;
+    const gap = 8;
+    const cardWidth = (window.innerWidth - (columns - 1) * gap) / columns;
+    return cardWidth > 0 && cardHeight > 0 ? cardWidth / cardHeight : undefined;
+  }, [configuredCardConfig, compareRunSections]);
+
   const groupByNormalized = useMemo(
     () =>
       // In case we encounter deprecated string-based group by descriptor
@@ -462,6 +477,7 @@ const RunsCompareImpl = ({
           onCancel={() => setConfiguredCardConfig(null)}
           groupBy={groupByNormalized}
           globalLineChartConfig={globalLineChartConfig}
+          previewAspectRatio={previewAspectRatio}
         />
       )}
       <RunsChartsFullScreenModal

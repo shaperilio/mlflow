@@ -83,6 +83,7 @@ export const RunsChartsConfigureModal = ({
   groupBy,
   supportedChartTypes,
   globalLineChartConfig,
+  previewAspectRatio,
 }: {
   metricKeyList: string[];
   metricKeysByDataset?: RunsChartsMetricByDatasetEntry[];
@@ -94,6 +95,8 @@ export const RunsChartsConfigureModal = ({
   onSubmit: (formData: Partial<RunsChartsCardConfig>) => void;
   supportedChartTypes?: RunsChartType[] | undefined;
   globalLineChartConfig?: RunsChartsGlobalLineChartConfig;
+  /** width/height ratio of the card in the grid, so the preview matches how the chart will look there */
+  previewAspectRatio?: number;
 }) => {
   const isChartTypeSupported = (type: RunsChartType) => !supportedChartTypes || supportedChartTypes.includes(type);
   const { theme } = useDesignSystemTheme();
@@ -280,8 +283,11 @@ export const RunsChartsConfigureModal = ({
             })
       }
       size="wide"
-      css={{ width: 1280 }}
       dangerouslySetAntdProps={{
+        // The design-system Modal pins width to the size preset (wide = 880px) via an inline antd
+        // style, which a `css` width can't override. Setting antd's `width` directly is the only way;
+        // grow up to 1600px but never exceed the viewport.
+        width: 'min(1600px, calc(100vw - 64px))',
         bodyStyle: {
           overflowY: 'hidden',
           display: 'flex',
@@ -401,18 +407,30 @@ export const RunsChartsConfigureModal = ({
           )}
           {renderConfigOptionsforChartType(currentFormState.type)}
         </div>
-        <div css={{ overflow: 'auto', flexGrow: 1 }}>
+        <div css={{ overflow: 'auto', flexGrow: 1, padding: `${theme.spacing.md}px 0` }}>
           <RunsChartsTooltipWrapper contextData={{ runs: chartRunData }} component={RunsChartsTooltipBody} hoverOnly>
-            <div
-              css={{
-                minHeight: 500,
-                height: '100%',
-                width: 500,
-                padding: '32px 0px',
-                display: 'flex',
-              }}
-            >
-              {renderPreviewChartType(currentFormState.type)}
+            {/* Center the (short, wide) preview vertically. RunsChartsTooltipWrapper renders a
+                height:100% div, so the centering has to live inside it. */}
+            <div css={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div
+                css={{
+                  width: '100%',
+                  // Match how the chart looks in the grid: width drives the height via the card's actual
+                  // width/height ratio (from its section's columns + cardHeight), instead of stretching to
+                  // the full modal height. Falls back to ~4:3 if the ratio isn't known. maxHeight keeps it
+                  // inside the pane on short viewports.
+                  aspectRatio: String(previewAspectRatio ?? 4 / 3),
+                  maxHeight: '100%',
+                  minHeight: 280,
+                  display: 'flex',
+                  // RunsMetricsLinePlot renders [chart, legend] meant to stack vertically (the grid card
+                  // wrapper is a plain block). Without column direction they land side-by-side, leaving
+                  // the chart at half width with the legend floating in the empty space beside it.
+                  flexDirection: 'column',
+                }}
+              >
+                {renderPreviewChartType(currentFormState.type)}
+              </div>
             </div>
           </RunsChartsTooltipWrapper>
         </div>
