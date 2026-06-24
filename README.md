@@ -26,6 +26,8 @@ Customizations atop the 3.9.0 release
 - Adding a new plot now puts it at the start of a section by default.
 - Allow custom X ranges both at workspace and plot level.
 - Custom legend text, including values of params, etc., globally and per-chart, with auto-complete
+- Pinnable hover tooltip - while hovering over traces, click on an empty plot area (not a curve) and
+  the hover will stay open for that X coordinate until you close.
 
 ### Deployment
 - [deploy](deploy/) directory to serve this frontend against an already-running backend; you can go

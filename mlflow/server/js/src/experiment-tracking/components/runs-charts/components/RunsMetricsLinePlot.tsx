@@ -956,6 +956,7 @@ export const RunsMetricsLinePlot = React.memo(
 
     const {
       scanlineElement,
+      pinnedElements,
       initHandler,
       updateHandler: updateHandlerMultipleRuns,
       onPointHover: hoverCallbackMultipleRuns,
@@ -1053,6 +1054,7 @@ export const RunsMetricsLinePlot = React.memo(
           fallback={<RunsChartCardLoadingPlaceholder />}
         />
         {scanlineElement}
+        {pinnedElements}
       </div>
     );
 
