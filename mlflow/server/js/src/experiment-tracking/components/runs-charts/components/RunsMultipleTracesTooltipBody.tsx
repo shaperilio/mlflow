@@ -70,6 +70,10 @@ export const RunsMultipleTracesTooltipBody = ({ hoverData }: { hoverData: RunsCo
             ) : shouldEnableRelativeTimeDateAxis() &&
               hoverData.xAxisKey === RunsChartsLineChartXAxisType.TIME_RELATIVE ? (
               <PlotlyLikeFormattedTimestamp value={xValue} />
+            ) : hoverData.xAxisKey === RunsChartsLineChartXAxisType.METRIC ? (
+              // X is a metric value here, so run it through the metric formatter instead of dumping the
+              // raw float. (Step stays as the exact integer.)
+              Utils.formatMetric(Number(xValue))
             ) : (
               xValue
             )}
