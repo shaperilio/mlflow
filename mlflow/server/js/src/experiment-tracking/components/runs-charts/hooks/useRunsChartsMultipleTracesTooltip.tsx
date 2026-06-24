@@ -1,15 +1,29 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { Figure } from 'react-plotly.js';
+import { useDesignSystemTheme } from '@databricks/design-system';
 import type {
   LineChartTraceData,
   RunsCompareMultipleTracesTooltipData,
   RunsMetricsLinePlotProps,
   RunsMetricsSingleTraceTooltipData,
 } from '../components/RunsMetricsLinePlot';
-import { compact, isNumber, isString, isUndefined, orderBy, throttle, uniq } from 'lodash';
+import { compact, isNumber, isString, isUndefined, orderBy, throttle, uniq, uniqueId } from 'lodash';
 import type { LegendLabelData } from '../components/RunsMetricsLegend';
 import type { RunsChartsLineChartXAxisType } from '../components/RunsCharts.common';
 import type { ColumnFormatSpec } from '../../experiment-page/utils/metricColumnFormat';
+import { RunsMultipleTracesTooltipBody } from '../components/RunsMultipleTracesTooltipBody';
+
+interface PinnedScanlineData {
+  id: string;
+  // Data-space X value the scanline is anchored to, so it re-tracks on zoom/resize.
+  xValue: number;
+  // Frozen snapshot of the multi-trace tooltip data captured at pin time.
+  snapshot: RunsCompareMultipleTracesTooltipData;
+  // Box position in pixels, relative to the chart container (draggable).
+  boxLeft: number;
+  boxTop: number;
+}
 
 // Plotly-specific selectors for finding particular elements of interest in the plot DOM structure
 const PLOTLY_SVG_SELECTOR = '.main-svg';
@@ -88,6 +102,14 @@ export const useRunsMultipleTracesTooltipData = ({
 
   // Keep the reference to the current hovered trace data
   const currentHoveredDataPoint = useRef<RunsMetricsSingleTraceTooltipData | undefined>(undefined);
+
+  const { theme } = useDesignSystemTheme();
+
+  // Pinned scanlines: snapshots of the multi-trace hover the user clicked to freeze, each with a
+  // draggable box. The live hover keeps working alongside them.
+  const [pins, setPins] = useState<PinnedScanlineData[]>([]);
+  const pinsRef = useRef<PinnedScanlineData[]>(pins);
+  pinsRef.current = pins;
 
   // Calculate all visible X values each time the plot data changes
   const visibleXValues = useMemo(() => uniq(plotData.map(({ x }) => x).flat()) as number[], [plotData]);
@@ -266,6 +288,18 @@ export const useRunsMultipleTracesTooltipData = ({
     [xAxisScaleType],
   );
 
+  // Convert a data-space X value into a pixel offset (left) within the chart container. Mirrors the
+  // live scanline math; used to position pinned scanlines so they re-track on zoom/resize.
+  const getPixelLeftForXValue = useCallback(
+    (xValue: number) => {
+      const boundaries = chartBoundaries.current;
+      const leftFraction =
+        ((xAxisScaleType === 'log' ? Math.log10(xValue) : xValue) - boundaries.lowerBoundValue) / boundaries.valueRange;
+      return boundaries.plotOffsetPixels + leftFraction * boundaries.plotWidthPixels;
+    },
+    [xAxisScaleType],
+  );
+
   useEffect(() => {
     // Return early if this tooltip is disabled
     if (disabled) {
@@ -391,11 +425,59 @@ export const useRunsMultipleTracesTooltipData = ({
       );
     };
 
+    // Click on empty plot area (not on a curve, not a drag) pins the current "all traces" snapshot.
+    // A click on a curve keeps its existing highlight behavior, so we ignore those. Listening on the
+    // document (capture) because plotly appends a drag cover on mousedown that swallows the plot's own
+    // click; a real (non-drag) click still produces a document-level click event.
+    const pinClickHandler = (e: MouseEvent) => {
+      // Ignore clicks that land on an existing pinned box (its × button / dragging it).
+      if (e.target instanceof Element && e.target.closest('[data-pinned-scanline-box]')) {
+        return;
+      }
+      // Ignore clicks while hovering a specific curve (that's the highlight action).
+      if (currentHoveredDataPoint.current) {
+        return;
+      }
+      const plotRect = dragLayer?.getBoundingClientRect();
+      if (
+        !plotRect ||
+        e.clientX < plotRect.left ||
+        e.clientX > plotRect.right ||
+        e.clientY < plotRect.top ||
+        e.clientY > plotRect.bottom
+      ) {
+        return;
+      }
+      const data = immediateHoverData.current;
+      if (!data || !isNumber(data.xValue)) {
+        return;
+      }
+      const xValue = data.xValue;
+      const snapshot: RunsCompareMultipleTracesTooltipData = {
+        ...data,
+        // Freeze the "all traces" look (no single-trace emphasis); copy the row list.
+        hoveredDataPoint: undefined,
+        tooltipLegendItems: [...data.tooltipLegendItems],
+      };
+      const scanlineLeft = getPixelLeftForXValue(xValue);
+      setPins((prev) => [
+        ...prev,
+        {
+          id: uniqueId('pinned-scanline-'),
+          xValue,
+          snapshot,
+          boxLeft: scanlineLeft + 8,
+          boxTop: 8,
+        },
+      ]);
+    };
+
     if (dragLayer) {
       // Assign two separate handlers for move: one for updating the tooltip data, one for updating the scanline and tooltip position
       dragLayer.addEventListener('pointermove', tooltipDataUpdateHandler);
       dragLayer.addEventListener('pointermove', hoverHandler);
       window.addEventListener('resize', windowResizeHandler);
+      document.addEventListener('click', pinClickHandler, { capture: true });
 
       // Assign a handler that hides the scanline and tooltip
       dragLayer.addEventListener('pointerleave', pointerLeavePlotCallback);
@@ -404,6 +486,7 @@ export const useRunsMultipleTracesTooltipData = ({
         dragLayer.removeEventListener('pointermove', hoverHandler);
         dragLayer.removeEventListener('pointerleave', pointerLeavePlotCallback);
         window.removeEventListener('resize', windowResizeHandler);
+        document.removeEventListener('click', pinClickHandler, { capture: true });
       };
     }
 
@@ -419,8 +502,99 @@ export const useRunsMultipleTracesTooltipData = ({
     xAxisKeyLabel,
     xAxisScaleType,
     getClosestXValue,
+    getPixelLeftForXValue,
     updateContainerPosition,
   ]);
+
+  // Drag a pinned box around by its body; the box position is stored in container pixels.
+  const startBoxDrag = useCallback((e: ReactPointerEvent, pinId: string) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const pin = pinsRef.current.find((entry) => entry.id === pinId);
+    const originLeft = pin?.boxLeft ?? 0;
+    const originTop = pin?.boxTop ?? 0;
+    const onMove = (moveEvent: PointerEvent) => {
+      setPins((prev) =>
+        prev.map((entry) =>
+          entry.id === pinId
+            ? { ...entry, boxLeft: originLeft + (moveEvent.clientX - startX), boxTop: originTop + (moveEvent.clientY - startY) }
+            : entry,
+        ),
+      );
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }, []);
+
+  const removePin = useCallback((pinId: string) => setPins((prev) => prev.filter((entry) => entry.id !== pinId)), []);
+
+  // Pinned scanlines + their draggable snapshot boxes, rendered inside the chart container next to the
+  // live scanline.
+  const pinnedElements = disabled ? null : (
+    <>
+      {pins.map((pin) => (
+        <Fragment key={pin.id}>
+          <div
+            css={{
+              top: 0,
+              width: 0,
+              borderLeft: `1px dashed rgba(0,0,0,0.5)`,
+              height: '100%',
+              position: 'absolute',
+              pointerEvents: 'none',
+            }}
+            style={{ left: `${getPixelLeftForXValue(pin.xValue)}px` }}
+          />
+          <div
+            data-pinned-scanline-box
+            onPointerDown={(e) => startBoxDrag(e, pin.id)}
+            css={{
+              position: 'absolute',
+              zIndex: 2,
+              padding: theme.spacing.sm,
+              paddingRight: theme.spacing.lg,
+              backgroundColor: theme.colors.backgroundPrimary,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: theme.general.borderRadiusBase,
+              boxShadow: theme.general.shadowLow,
+              cursor: 'move',
+              // The chart wrapper sets font-size: 0; restore a normal size for the box content.
+              fontSize: theme.typography.fontSizeMd,
+              lineHeight: 'normal',
+            }}
+            style={{ left: pin.boxLeft, top: pin.boxTop }}
+          >
+            <button
+              type="button"
+              aria-label="Unpin"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => removePin(pin.id)}
+              css={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                lineHeight: 1,
+                fontSize: theme.typography.fontSizeLg,
+                color: theme.colors.textSecondary,
+                padding: theme.spacing.xs,
+              }}
+            >
+              ×
+            </button>
+            <RunsMultipleTracesTooltipBody hoverData={pin.snapshot} />
+          </div>
+        </Fragment>
+      ))}
+    </>
+  );
 
   const scanlineElement = disabled ? null : (
     <div
@@ -441,6 +615,7 @@ export const useRunsMultipleTracesTooltipData = ({
     updateHandler: onUpdatePlotHandler,
     initHandler: onInitPlotHandler,
     scanlineElement,
+    pinnedElements,
     onPointHover: onPointHoverCallback,
     onPointUnhover: onPointUnhoverCallback,
   };
