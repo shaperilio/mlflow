@@ -346,7 +346,9 @@ const RunsCompareImpl = ({
   const toggleRunVisibility = useToggleRowVisibilityCallback(comparedRuns);
 
   const onHideRun = useCallback(
-    (runUuid: string) => toggleRunVisibility(RUNS_VISIBILITY_MODE.CUSTOM, runUuid),
+    // The run is visible when hiding it from the chart tooltip, so pass isCurrentlyVisible=true. Without
+    // it, the runsVisibilityMap path sets `!undefined === true` (visible) and the run never hides.
+    (runUuid: string) => toggleRunVisibility(RUNS_VISIBILITY_MODE.CUSTOM, runUuid, true),
     [toggleRunVisibility],
   );
 

@@ -28,6 +28,7 @@ Customizations atop the 3.9.0 release
 - Custom legend text, including values of params, etc., globally and per-chart, with auto-complete
 - Pinnable hover tooltip - while hovering over traces, click on an empty plot area (not a curve) and
   the hover will stay open for that X coordinate until you close.
+- Fixed "hide run" bug when clicking on a curve.
 
 ### Deployment
 - [deploy](deploy/) directory to serve this frontend against an already-running backend; you can go
