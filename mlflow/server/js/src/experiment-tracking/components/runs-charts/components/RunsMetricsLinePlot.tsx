@@ -1017,9 +1017,9 @@ export const RunsMetricsLinePlot = React.memo(
       >
         {truncationWarning && (
           <LegacyTooltip
-            title={`Showing only the steps shared by "${truncationWarning.xMetric}" and ${truncationWarning.metrics
+            title={`"${truncationWarning.xMetric}" and ${truncationWarning.metrics
               .map((metric) => `"${metric}"`)
-              .join(', ')}. Points logged at steps the paired metrics don't share are hidden.`}
+              .join(', ')} have a different number of points. Points shown are for the steps they have in common.`}
           >
             <div
               css={{
