@@ -21,7 +21,9 @@ Customizations atop the 3.9.0 release
 ### Chart view
 - Better sorting of chart sections.
 - Show a warning when two metrics of different lengths are plotted together (previously, the longer
-  metric was silently truncated).
+  metric was silently truncated). Metrics are aligned by step number and sorted in step order. NOTE:
+  this makes logging cadence a bit more important, i.e. your "step" would ideally be universally the
+  same throughout the training script.
 - Allow two y axes in line plots.
 - Adding a new plot now puts it at the start of a section by default.
 - Allow custom X ranges both at workspace and plot level.

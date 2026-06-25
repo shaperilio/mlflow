@@ -497,10 +497,10 @@ const prepareXAxisDataForMetricType = (
       value: normalizeChartValue(datapoint.value),
       step: datapoint.step,
     }))
-    .sort((a, b) => {
-      // sort by value in ascending order
-      return Number(a.value) - Number(b.value);
-    });
+    // Connect points in step (logging) order, not by X value. Sorting by X value scrambles a
+    // non-monotonic X metric (e.g. a cyclical learning rate) into a zig-zag, because the same X recurs
+    // at many steps; step order traces the actual trajectory. For a monotonic X the two orders match.
+    .sort((a, b) => a.step - b.step);
 };
 
 const getXAxisPlotlyType = (
