@@ -15,7 +15,7 @@ import {
 } from '@databricks/design-system';
 import type { KeyValueEntity } from '../../common/types';
 import { throttle, values } from 'lodash';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { ColumnDef } from '@tanstack/react-table';
 import { flexRender, getCoreRowModel, getExpandedRowModel } from '@tanstack/react-table';
@@ -49,54 +49,57 @@ const ExpandableParamValueCell = ({
   const { theme } = useDesignSystemTheme();
   const smartFormatting = useSmartNumberFormattingEnabled();
   const cellRef = useRef<HTMLDivElement>(null);
-  const [isOverflowing, setIsOverflowing] = useState(false);
+  // Whether the value is too tall for the collapsed (3-line) state and therefore needs an expand
+  // control. Overflow can only be measured while collapsed (expanding removes the clamp, making
+  // scrollHeight === clientHeight), so this is kept sticky while expanded instead of flipping to
+  // false — the flip was what made the chevron flicker/disappear on collapse.
+  const [needsExpansion, setNeedsExpansion] = useState(false);
+
+  // Read the latest expanded state inside callbacks without re-subscribing the ResizeObserver.
+  const isExpandedRef = useRef(isExpanded);
+  isExpandedRef.current = isExpanded;
 
   // Format numeric param values when smart formatting is on
   const isNumeric = typeof value === 'string' && value !== '' && value !== '-' && !isNaN(Number(value.trim()));
   const displayValue = smartFormatting && isNumeric ? Utils.formatMetric(Number(value.trim())) : value;
 
-  useEffect(() => {
-    if (autoExpandedRowsList[name]) {
+  const measureOverflow = useCallback(() => {
+    const cell = cellRef.current;
+    // Only meaningful while collapsed; leave the last value untouched while expanded.
+    if (!cell || isExpandedRef.current) {
       return;
     }
-    if (isOverflowing) {
-      toggleExpanded();
-      autoExpandedRowsList[name] = true;
-    }
-  }, [autoExpandedRowsList, isOverflowing, name, toggleExpanded]);
+    setNeedsExpansion(cell.scrollHeight > cell.clientHeight);
+  }, []);
 
-  // Check if cell is overflowing using resize observer
+  // Measure on mount and whenever the cell resizes (e.g. the column width changes).
   useEffect(() => {
     if (!cellRef.current) return;
-
-    const resizeObserverCallback: ResizeObserverCallback = throttle(
-      ([entry]) => {
-        const isOverflowing = entry.target.scrollHeight > entry.target.clientHeight;
-        setIsOverflowing(isOverflowing);
-      },
-      500,
-      { trailing: true },
-    );
-
-    const resizeObserver = new ResizeObserver(resizeObserverCallback);
+    measureOverflow();
+    const resizeObserver = new ResizeObserver(throttle(measureOverflow, 250, { trailing: true }));
     resizeObserver.observe(cellRef.current);
     return () => resizeObserver.disconnect();
-  }, [cellRef, toggleExpanded]);
+  }, [measureOverflow]);
 
-  // Re-check if cell is overflowing after collapse
+  // Re-measure immediately on collapse so the chevron is correct without waiting for the observer.
   useEffect(() => {
-    if (!cellRef.current) return;
     if (!isExpanded) {
-      const isOverflowing = cellRef.current.scrollHeight > cellRef.current.clientHeight;
-      if (isOverflowing) {
-        setIsOverflowing(true);
-      }
+      measureOverflow();
     }
-  }, [isExpanded]);
+  }, [isExpanded, measureOverflow]);
+
+  // Auto-expand an overflowing value once, so long params are readable by default; the user can
+  // collapse it afterwards and it stays collapsed.
+  useEffect(() => {
+    if (needsExpansion && !isExpanded && !autoExpandedRowsList[name]) {
+      autoExpandedRowsList[name] = true;
+      toggleExpanded();
+    }
+  }, [needsExpansion, isExpanded, autoExpandedRowsList, name, toggleExpanded]);
 
   return (
     <div css={{ display: 'flex', gap: theme.spacing.xs }}>
-      {(isOverflowing || isExpanded) && (
+      {needsExpansion && (
         <Button
           componentId="codegen_mlflow_app_src_experiment-tracking_components_run-page_overview_runviewparamstable.tsx_74"
           size="small"
