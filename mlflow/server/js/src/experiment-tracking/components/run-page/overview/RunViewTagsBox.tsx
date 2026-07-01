@@ -4,6 +4,7 @@ import { useEditKeyValueTagsModal } from '../../../../common/hooks/useEditKeyVal
 import { useTagAssignmentModal } from '../../../../common/hooks/useTagAssignmentModal';
 import type { KeyValueEntity } from '../../../../common/types';
 import { KeyValueTag } from '../../../../common/components/KeyValueTag';
+import { LinkifiedText } from '../../../../common/components/LinkifiedText';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { keys, values } from 'lodash';
 import { useDispatch } from 'react-redux';
@@ -113,7 +114,9 @@ export const RunViewTagsBox = ({
                   <div css={{ color: theme.colors.textSecondary, whiteSpace: 'nowrap', alignSelf: 'start' }}>
                     {tag.key}
                   </div>
-                  <div css={{ minWidth: 0, alignSelf: 'start', wordBreak: 'break-word' }}>{tag.value}</div>
+                  <div css={{ minWidth: 0, alignSelf: 'start', wordBreak: 'break-word' }}>
+                    <LinkifiedText text={tag.value} />
+                  </div>
                 </Fragment>
               ))}
             </div>
