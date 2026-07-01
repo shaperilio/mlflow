@@ -198,7 +198,9 @@ export const useRunDetailsPageOverviewSectionsV2 = ({
         defaultMessage: 'Tags',
         description: 'Title for the tags section on the run details page',
       }),
-      content: <RunViewTagsBox runUuid={runInfo.runUuid ?? ''} tags={tags} onTagsUpdated={onTagsUpdated} />,
+      content: (
+        <RunViewTagsBox runUuid={runInfo.runUuid ?? ''} tags={tags} onTagsUpdated={onTagsUpdated} variant="table" />
+      ),
     },
     {
       id: RunDetailsPageMetadataSections.REGISTERED_MODELS,

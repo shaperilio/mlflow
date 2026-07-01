@@ -18,6 +18,7 @@ Customizations atop the 3.9.0 release
   such *all* parameter, tag, and metric sorting on this branch is done in the browser (other
   attributes still sort server-side).
 - Fixed a bug where unnecessary "expand" chevrons were appearing in the parameters table.
+- Tags are displayed in a table format like "About this run" above them.
 
 ### Chart view
 - Better sorting of chart sections.
