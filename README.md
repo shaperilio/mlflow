@@ -17,6 +17,7 @@ Customizations atop the 3.9.0 release
   front-end only, so it's done on the browser. That has the advantage of being extremely quick; as
   such *all* parameter, tag, and metric sorting on this branch is done in the browser (other
   attributes still sort server-side).
+- Fixed a bug where unnecessary "expand" chevrons were appearing in the parameters table.
 
 ### Chart view
 - Better sorting of chart sections.
