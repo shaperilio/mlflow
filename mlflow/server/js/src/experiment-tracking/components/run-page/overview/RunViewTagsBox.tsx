@@ -9,7 +9,7 @@ import { keys, values } from 'lodash';
 import { useDispatch } from 'react-redux';
 import type { ThunkDispatch } from '../../../../redux-types';
 import { setRunTagsBulkApi, saveRunTagsApi } from '../../../actions';
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { isUserFacingTag } from '../../../../common/utils/TagUtils';
 
 /**
@@ -20,11 +20,15 @@ export const RunViewTagsBox = ({
   tags,
   onTagsUpdated,
   className,
+  variant = 'chips',
 }: {
   runUuid: string;
   tags: Record<string, KeyValueEntity>;
   onTagsUpdated: () => void;
   className?: string;
+  // 'chips' (default) renders tags as inline KeyValueTag pills; 'table' renders them as key/value
+  // rows matching the "About this run" section, so long values are actually readable.
+  variant?: 'chips' | 'table';
 }) => {
   const sharedTaggingUIEnabled = shouldUseSharedTaggingUI();
 
@@ -75,6 +79,64 @@ export const RunViewTagsBox = ({
     defaultMessage: 'Edit tags',
     description: "Run page > Overview > Tags cell > 'Edit' button label",
   });
+
+  if (variant === 'table') {
+    return (
+      <div className={className}>
+        {tagsKeyValueMap.length < 1 ? (
+          <Button
+            componentId="mlflow.run_details.overview.tags.add_button"
+            size="small"
+            type="tertiary"
+            onClick={showEditModal}
+          >
+            <FormattedMessage
+              defaultMessage="Add tags"
+              description="Run page > Overview > Tags cell > 'Add' button label"
+            />
+          </Button>
+        ) : (
+          <>
+            {/* Grid so the name column sizes to the longest tag name (never wrapping) while values take
+                the remaining width and wrap. */}
+            <div
+              css={{
+                display: 'grid',
+                gridTemplateColumns: 'max-content 1fr',
+                columnGap: theme.spacing.md,
+                rowGap: theme.spacing.xs,
+                lineHeight: theme.typography.lineHeightLg,
+              }}
+            >
+              {tagsKeyValueMap.map((tag) => (
+                <Fragment key={tag.key}>
+                  <div css={{ color: theme.colors.textSecondary, whiteSpace: 'nowrap', alignSelf: 'start' }}>
+                    {tag.key}
+                  </div>
+                  <div css={{ minWidth: 0, alignSelf: 'start', wordBreak: 'break-word' }}>{tag.value}</div>
+                </Fragment>
+              ))}
+            </div>
+            <Button
+              componentId="mlflow.run_details.overview.tags.edit_button"
+              size="small"
+              type="tertiary"
+              icon={<PencilIcon />}
+              onClick={showEditModal}
+              css={{ marginTop: theme.spacing.sm }}
+            >
+              {editTagsLabel}
+            </Button>
+          </>
+        )}
+        {isLoading && <Spinner size="small" />}
+        {/** Old modal for editing tags */}
+        {EditTagsModal}
+        {/** New modal for editing tags, using shared tagging UI */}
+        {TagAssignmentModal}
+      </div>
+    );
+  }
 
   return (
     <div
