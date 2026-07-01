@@ -21,6 +21,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { flexRender, getCoreRowModel, getExpandedRowModel } from '@tanstack/react-table';
 import type { Interpolation, Theme } from '@emotion/react';
 import { ExpandedJSONValueCell } from '@mlflow/mlflow/src/common/components/ExpandableCell';
+import { LinkifiedText } from '@mlflow/mlflow/src/common/components/LinkifiedText';
 import { isUnstableNestedComponentsMigrated } from '../../common/utils/FeatureUtils';
 import { useExperimentTrackingDetailsPageLayoutStyles } from '../hooks/useExperimentTrackingDetailsPageLayoutStyles';
 import Utils from '../../common/utils/Utils';
@@ -119,7 +120,7 @@ const ExpandableParamValueCell = ({
         }}
         ref={cellRef}
       >
-        {isExpanded ? <ExpandedJSONValueCell value={value} /> : displayValue}
+        {isExpanded ? <ExpandedJSONValueCell value={value} /> : <LinkifiedText text={displayValue} />}
       </div>
     </div>
   );

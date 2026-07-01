@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Button, ChevronDownIcon, ChevronRightIcon, useDesignSystemTheme } from '@databricks/design-system';
+import { LinkifiedText } from './LinkifiedText';
 
 export const ExpandedJSONValueCell = ({ value }: { value: string }) => {
   const structuredJSONValue = useMemo(() => {
@@ -20,7 +21,7 @@ export const ExpandedJSONValueCell = ({ value }: { value: string }) => {
         fontFamily: structuredJSONValue ? 'monospace' : undefined,
       }}
     >
-      {structuredJSONValue || value}
+      {structuredJSONValue || <LinkifiedText text={value} />}
     </div>
   );
 };
