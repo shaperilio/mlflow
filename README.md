@@ -19,7 +19,6 @@ Customizations atop the 3.9.0 release
   attributes still sort server-side).
 - Fixed a bug where unnecessary "expand" chevrons were appearing in the parameters table.
 - Tags are displayed in a table format like "About this run" above them.
-- URLs in tag and parameter values are clickable and open in a new tab.
 
 ### Chart view
 - Better sorting of chart sections.
@@ -35,6 +34,8 @@ Customizations atop the 3.9.0 release
   the hover will stay open for that X coordinate until you close.
 - Fixed "hide run" bug when clicking on a curve.
 
+### Run view
+- URLs in tag and parameter values are clickable and open in a new tab.
 ### Deployment
 - [deploy](deploy/) directory to serve this frontend against an already-running backend; you can go
   hog-wild on GUI experiments while keeping a completely functional server running elsewhere.
