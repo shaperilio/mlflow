@@ -7,6 +7,9 @@ const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 // Trailing characters that are almost always punctuation around a URL rather than part of it.
 const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
 
+/** True when the whole (trimmed) string is an http(s) URL. */
+export const isHttpUrl = (value: string): boolean => /^https?:\/\/\S+$/i.test((value ?? '').trim());
+
 /**
  * Renders a string, turning any http(s) URLs it contains into links that open in a new tab. Used for
  * parameter and tag values so URL-like values are clickable wherever they're displayed.
