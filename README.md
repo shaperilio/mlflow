@@ -36,6 +36,9 @@ Customizations atop the 3.9.0 release
 
 ### Run view
 - URLs in tag and parameter values are clickable and open in a new tab.
+- Parameters or tags whose name start with "link/" and whose value is a proper URL will be shown in
+  their respective tables and also as clikable "link buttons" below the run description.
+
 ### Deployment
 - [deploy](deploy/) directory to serve this frontend against an already-running backend; you can go
   hog-wild on GUI experiments while keeping a completely functional server running elsewhere.

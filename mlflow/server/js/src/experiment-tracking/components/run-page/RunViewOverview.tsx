@@ -15,6 +15,7 @@ import { RunViewDatasetBox } from './overview/RunViewDatasetBox';
 import { RunViewParentRunBox } from './overview/RunViewParentRunBox';
 import { RunViewTagsBox } from './overview/RunViewTagsBox';
 import { RunViewDescriptionBox } from './overview/RunViewDescriptionBox';
+import { RunViewLinksBox } from './overview/RunViewLinksBox';
 import { DetailsOverviewMetadataRow } from '../DetailsOverviewMetadataRow';
 import { RunViewRegisteredModelsBox } from './overview/RunViewRegisteredModelsBox';
 import { RunViewRegisteredPromptsBox } from './overview/RunViewRegisteredPromptsBox';
@@ -318,6 +319,7 @@ export const RunViewOverview = ({
       {usingSidebarLayout && (
         <RunViewDescriptionBox runUuid={runUuid} tags={tags} onDescriptionChanged={onRunDataUpdated} />
       )}
+      <RunViewLinksBox params={params} tags={tags} />
       {!usingSidebarLayout && (
         <>
           {/* prettier-ignore */}
