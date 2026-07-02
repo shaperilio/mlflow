@@ -42,6 +42,7 @@ import {
 } from '../components/runs/cells/DatasetsCellRenderer';
 import type { RunDatasetWithTags } from '../../../types';
 import { AggregateMetricValueCell } from '../components/runs/cells/AggregateMetricValueCell';
+import { ParamTagLinkCellRenderer } from '../components/runs/cells/ParamTagLinkCellRenderer';
 import { type RUNS_VISIBILITY_MODE } from '../models/ExperimentPageUIState';
 import { useMediaQuery } from '@databricks/web-shared/hooks';
 import { customMetricBehaviorDefs } from './customMetricBehaviorUtils';
@@ -154,6 +155,7 @@ export const getFrameworkComponents = () => ({
   RunNameCellRenderer,
   DatasetsCellRenderer,
   AggregateMetricValueCell,
+  ParamTagLinkCellRenderer,
 });
 
 /**
@@ -576,6 +578,9 @@ export const useRunsColumnDefinitions = ({
             initialHide: true,
             initialWidth: 100,
             sortable: true,
+            // Render URL values as links (and "links/<label>" params as a labelled link).
+            cellRenderer: 'ParamTagLinkCellRenderer',
+            cellRendererParams: { columnKey: paramKey },
             // Numeric params sort client-side (the backend sorts them as strings); other params
             // keep the default server-side sort.
             ...(isNumericColumn && { comparator: numericParamComparator }),
@@ -616,6 +621,9 @@ export const useRunsColumnDefinitions = ({
             field: createTagFieldName(tagKey),
             tooltipField: createTagFieldName(tagKey),
             sortable: true,
+            // Render URL values as links (and "links/<label>" tags as a labelled link).
+            cellRenderer: 'ParamTagLinkCellRenderer',
+            cellRendererParams: { columnKey: tagKey },
             headerComponentParams: {
               canonicalSortKey,
               clientSortable: true,
