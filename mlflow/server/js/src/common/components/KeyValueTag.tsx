@@ -3,6 +3,7 @@ import type { KeyValueEntity } from '../types';
 import React, { useState } from 'react';
 import { useIntl } from 'react-intl';
 import { KeyValueTagFullViewModal } from './KeyValueTagFullViewModal';
+import { isHttpUrl } from './LinkifiedText';
 import type { Interpolation, Theme } from '@emotion/react';
 
 /**
@@ -34,6 +35,7 @@ export const KeyValueTag = ({
   charLimit = TRUNCATE_ON_CHARS_LENGTH,
   maxWidth = 300,
   className,
+  linkifyUrlValue = false,
 }: {
   isClosable?: boolean;
   onClose?: () => void;
@@ -42,11 +44,14 @@ export const KeyValueTag = ({
   charLimit?: number;
   maxWidth?: number;
   className?: string;
+  // When true and the value is an http(s) URL, render it as a link that opens in a new tab.
+  linkifyUrlValue?: boolean;
 }) => {
   const intl = useIntl();
 
   const [isKeyValueTagFullViewModalVisible, setIsKeyValueTagFullViewModalVisible] = useState(false);
 
+  const valueIsLink = linkifyUrlValue && isHttpUrl(tag.value);
   const { shouldTruncateKey, shouldTruncateValue } = getKeyAndValueComplexTruncation(tag, charLimit);
   const allowFullViewModal = enableFullViewModal && (shouldTruncateKey || shouldTruncateValue);
 
@@ -75,11 +80,24 @@ export const KeyValueTag = ({
             <Typography.Text bold title={tag.key} css={getTruncatedStyles(shouldTruncateKey)}>
               {tag.key}
             </Typography.Text>
-            {tag.value && (
-              <Typography.Text title={tag.value} css={getTruncatedStyles(shouldTruncateValue)}>
-                : {tag.value}
-              </Typography.Text>
-            )}
+            {tag.value &&
+              (valueIsLink ? (
+                <Typography.Text title={tag.value} css={getTruncatedStyles(shouldTruncateValue)}>
+                  :{' '}
+                  <a
+                    href={tag.value}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {tag.value}
+                  </a>
+                </Typography.Text>
+              ) : (
+                <Typography.Text title={tag.value} css={getTruncatedStyles(shouldTruncateValue)}>
+                  : {tag.value}
+                </Typography.Text>
+              ))}
           </span>
         </Tooltip>
       </Tag>

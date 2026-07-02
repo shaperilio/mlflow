@@ -22,7 +22,7 @@ export const ExperimentListTableTagsCell: ExperimentTableColumnDef['cell'] = ({
     <div css={{ display: 'flex' }}>
       <div css={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex' }}>
         {visibleTagList?.map((tag) => (
-          <KeyValueTag key={tag.key} tag={tag} />
+          <KeyValueTag key={tag.key} tag={tag} linkifyUrlValue />
         ))}
       </div>
       <Button
