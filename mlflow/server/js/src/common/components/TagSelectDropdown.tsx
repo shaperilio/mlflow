@@ -98,6 +98,7 @@ export function TagKeySelectDropdown({
 }) {
   const intl = useIntl();
   const [isOpen, setIsOpen] = useState(false);
+  const [searchText, setSearchText] = useState('');
   const selectRef = useRef<{ blur: () => void; focus: () => void }>(null);
 
   const { field, fieldState } = useController({
@@ -121,12 +122,33 @@ export function TagKeySelectDropdown({
   const handleClear = () => {
     field.onChange(undefined);
     onKeyChangeCallback?.(undefined);
+    setSearchText('');
   };
 
   const handleSelect = (key: string) => {
     field.onChange(key);
     onKeyChangeCallback?.(key);
+    setSearchText('');
   };
+
+  // Commit free-typed text as the key so new tags can be created by just typing (antd's showSearch
+  // otherwise treats the text as a throwaway search query and discards it on blur). Fired when focus
+  // leaves the select, e.g. moving to the value box. Keys the "Add tag" option would reject are not
+  // committed either.
+  const commitTypedKey = () => {
+    const typed = searchText.trim();
+    if (typed && typed !== field.value && isValidTagKey(typed)) {
+      handleSelect(typed);
+    }
+  };
+
+  // Include the current value in the options so a freshly-typed key still renders in the select.
+  const options = useMemo(() => {
+    if (field.value && !allAvailableTags.includes(field.value)) {
+      return [field.value, ...allAvailableTags];
+    }
+    return allAvailableTags;
+  }, [allAvailableTags, field.value]);
 
   return (
     <LegacySelect
@@ -146,11 +168,13 @@ export function TagKeySelectDropdown({
       open={isOpen}
       onDropdownVisibleChange={handleDropdownVisibleChange}
       filterOption={(input, option) => option?.value.toLowerCase().includes(input.toLowerCase())}
+      onSearch={(value: string) => setSearchText(value)}
+      onBlur={commitTypedKey}
       onSelect={handleSelect}
       onClear={handleClear}
       validationState={fieldState.error ? 'error' : undefined}
     >
-      {allAvailableTags.map((tag) => (
+      {options.map((tag) => (
         <LegacySelect.Option value={tag} key={tag}>
           {tag}
         </LegacySelect.Option>
