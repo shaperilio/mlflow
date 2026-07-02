@@ -38,6 +38,7 @@ Customizations atop the 3.9.0 release
 - URLs in tag and parameter values are clickable and open in a new tab.
 - Parameters or tags whose name start with "link/" and whose value is a proper URL will be shown in
   their respective tables and also as clikable "link buttons" below the run description.
+- Fixed a bug in the Edit Tags dialog box which prevented the creation of new tags.
 
 ### Deployment
 - [deploy](deploy/) directory to serve this frontend against an already-running backend; you can go
