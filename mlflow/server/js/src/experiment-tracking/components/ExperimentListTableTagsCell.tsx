@@ -24,7 +24,7 @@ export const ExperimentListTableTagsCell: ExperimentTableColumnDef['cell'] = ({
       {containsTags && (
         <Overflow noMargin className="experiment-tags-overflow">
           {visibleTagList.map((tag) => (
-            <KeyValueTag key={tag.key} tag={tag} />
+            <KeyValueTag key={tag.key} tag={tag} linkifyUrlValue />
           ))}
         </Overflow>
       )}
