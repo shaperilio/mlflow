@@ -12,24 +12,26 @@ browser ──▶ nginx (this container, port $PORT) ──▶ your MLflow backe
 
 ## Layout
 
-| File | Purpose |
-|------|---------|
-| `Dockerfile` | Image with Node + nginx that builds and serves the frontend |
-| `entrypoint.sh` | Builds the frontend (if needed) and starts nginx |
-| `nginx.conf.template` | nginx site; `${PORT}`/`${BACKEND_URL}`/`${LOGO_FILE}` filled in at runtime |
-| `docker-compose.yml` | Service definition; bind-mounts the repo, reads `.env` |
-| `.env.example` | Template for your local config (copy to `.env`) |
-| `start.sh` | One-shot launcher: starts Docker if needed, brings the container up, waits until it's serving |
-| `pull-latest.sh` | Pull the latest branch tip, rebuild/restart, wait until serving (deployment host) |
-| `_lib.sh` | Shared helpers sourced by the scripts (compose detection, wait-for-serving) |
-| `install-docker.sh` | Installs Docker Engine + Compose on Ubuntu |
-| `install-service.sh` | Installs a systemd unit so it starts on boot |
-| `mlflow-frontend.service` | systemd unit template |
+| File                      | Purpose                                                                                       |
+| ------------------------- | --------------------------------------------------------------------------------------------- |
+| `Dockerfile`              | Image with Node + nginx that builds and serves the frontend                                   |
+| `entrypoint.sh`           | Builds the frontend (if needed) and starts nginx                                              |
+| `nginx.conf.template`     | nginx site; `${PORT}`/`${BACKEND_URL}`/`${LOGO_FILE}` filled in at runtime                    |
+| `docker-compose.yml`      | Service definition; bind-mounts the repo, reads `.env`                                        |
+| `.env.example`            | Template for your local config (copy to `.env`)                                               |
+| `start.sh`                | One-shot launcher: starts Docker if needed, brings the container up, waits until it's serving |
+| `pull-latest.sh`          | Pull the latest branch tip, rebuild/restart, wait until serving (deployment host)             |
+| `_lib.sh`                 | Shared helpers sourced by the scripts (compose detection, wait-for-serving)                   |
+| `install-docker.sh`       | Installs Docker Engine + Compose on Ubuntu                                                    |
+| `install-service.sh`      | Installs a systemd unit so it starts on boot                                                  |
+| `mlflow-frontend.service` | systemd unit template                                                                         |
 
 `.env` is **gitignored** — your backend URL never gets committed.
 
 ## Quick start
+
 On your server:
+
 ```bash
 # 0. Get the code (first time only)
 git clone -b master --single-branch https://github.com/shaperilio/mlflow.git
@@ -61,11 +63,13 @@ docker compose logs -f
 ```
 
 NOTE: if you have to change `.env` while the container is running, you'll have to do this:
+
 ```
 docker compose up -d --force-recreate
 #   …or if you installed the systemd service:
 #   sudo systemctl restart mlflow-frontend
 ```
+
 from within the `deploy` directory.
 
 ## Run on boot (always-on)

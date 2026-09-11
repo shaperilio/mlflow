@@ -18,6 +18,59 @@ export MLFLOW_TRACKING_URI="http://your-mlflow-server:5000"
 <br>
 <br>
 
+# Custom fork
+
+Customizations atop upstream MLflow's `master` branch (they started out on the `3.9.0-custom`
+branch, atop the 3.9.0 release).
+
+### General
+
+- Custom logo in the sidebar, with fallback to original MLflow logo.
+- The left sidebar remembers whether you collapsed it.
+
+### Table view
+
+- Eye-friendly number format, based on [#23023](https://github.com/mlflow/mlflow/pull/23023).
+- Header column wrapping in table views.
+- "Duration" column is hidable.
+- Parameters that look like numbers are sorted as such, instead of as strings. Note: this would be
+  better implemented as a backend fix to handle pagination (and maybe querying), but this is
+  front-end only, so it's done on the browser. That has the advantage of being extremely quick; as
+  such _all_ parameter, tag, and metric sorting on this branch is done in the browser (other
+  attributes still sort server-side).
+- Fixed a bug where unnecessary "expand" chevrons were appearing in the parameters table.
+- Tags are displayed in a table format like "About this run" above them.
+
+### Chart view
+
+- Better sorting of chart sections.
+- Show a warning when two metrics of different lengths are plotted together (previously, the longer
+  metric was silently truncated). Metrics are aligned by step number and sorted in step order. NOTE:
+  this makes logging cadence a bit more important, i.e. your "step" would ideally be universally the
+  same throughout the training script.
+- Allow two y axes in line plots.
+- Adding a new plot now puts it at the start of a section by default.
+- Allow custom X ranges both at workspace and plot level.
+- Custom legend text, including values of params, etc., globally and per-chart, with auto-complete
+- Pinnable hover tooltip - while hovering over traces, click on an empty plot area (not a curve) and
+  the hover will stay open for that X coordinate until you close.
+
+### Run view
+
+- URLs in tag and parameter values are clickable and open in a new tab.
+- Parameters or tags whose name start with "links/" and whose value is a proper URL will be shown in
+  their respective tables and also as clickable "link buttons" below the run description.
+- Fixed a bug in the Edit Tags dialog box which prevented the creation of new tags.
+
+### Deployment
+
+- [deploy](deploy/) directory to serve this frontend against an already-running backend; you can go
+  hog-wild on GUI experiments while keeping a completely functional server running elsewhere.
+
+# MLflow
+
+What follows is upstream MLflow's readme.
+
 <h1 align="center" style="border-bottom: none">
     <a href="https://mlflow.org/">
         <img alt="MLflow logo" src="https://raw.githubusercontent.com/mlflow/mlflow/refs/heads/master/assets/logo.svg" width="200" />
