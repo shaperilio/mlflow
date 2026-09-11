@@ -206,11 +206,13 @@ describe('RunsChartsGlobalChartSettingsDropdown', () => {
     expect(screen.getByTestId('chart-alpha').textContent).toContain('x-axis: step');
     expect(screen.getByTestId('chart-beta').textContent).toContain('x-axis: step');
 
-    // Change the line smoothness to 42
+    // Change the line smoothness to 42 (its input is the one number box without a label; the X-axis
+    // min/max boxes are labelled)
     await userEvent.click(screen.getByLabelText('Configure charts'));
-    await userEvent.clear(screen.getByRole('spinbutton'));
-    await userEvent.type(screen.getByRole('spinbutton'), '42');
-    fireEvent.blur(screen.getByRole('spinbutton'));
+    const getSmoothnessInput = () => screen.getByRole('spinbutton', { name: '' });
+    await userEvent.clear(getSmoothnessInput());
+    await userEvent.type(getSmoothnessInput(), '42');
+    fireEvent.blur(getSmoothnessInput());
 
     // Expect beta chart to reflect the changes while alpha should stay the same
     expect(screen.getByTestId('chart-alpha').textContent).toContain('smoothness: 0');

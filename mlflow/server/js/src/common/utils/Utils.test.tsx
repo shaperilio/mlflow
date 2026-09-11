@@ -14,19 +14,19 @@ import { PermissionError, UnauthorizedError } from '@databricks/web-shared/error
 import { ErrorWrapper } from './ErrorWrapper';
 
 test('formatMetric', () => {
+  // 4 significant figures anchored to the value's own magnitude, digits grouped in threes (with
+  // spaces) on both sides of the decimal point; integers get no decimals.
   expect(Utils.formatMetric(0)).toEqual('0');
-  expect(Utils.formatMetric(0.5)).toEqual('0.5');
-  expect(Utils.formatMetric(0.001)).toEqual('0.001');
+  expect(Utils.formatMetric(0.5)).toEqual('0.500 0');
+  expect(Utils.formatMetric(0.001)).toEqual('0.001 000');
 
-  expect(Utils.formatMetric(0.000123445)).toEqual('1.234e-4');
-  expect(Utils.formatMetric(0.000123455)).toEqual('1.235e-4');
-  expect(Utils.formatMetric(-0.000123445)).toEqual('-1.234e-4');
-  expect(Utils.formatMetric(-0.000123455)).toEqual('-1.235e-4');
+  expect(Utils.formatMetric(0.000123445)).toEqual('0.000 123 4');
+  expect(Utils.formatMetric(0.000123455)).toEqual('0.000 123 5');
+  expect(Utils.formatMetric(-0.000123445)).toEqual('-0.000 123 4');
+  expect(Utils.formatMetric(-0.000123455)).toEqual('-0.000 123 5');
 
-  expect(Utils.formatMetric(0.12345)).toEqual('0.123');
-  expect(Utils.formatMetric(0.12355)).toEqual('0.124');
-  expect(Utils.formatMetric(-0.12345)).toEqual('-0.123');
-  expect(Utils.formatMetric(-0.12355)).toEqual('-0.124');
+  expect(Utils.formatMetric(0.12345)).toEqual('0.123 5');
+  expect(Utils.formatMetric(-0.12345)).toEqual('-0.123 5');
 
   expect(Utils.formatMetric(1.12345)).toEqual('1.123');
   expect(Utils.formatMetric(1.12355)).toEqual('1.124');
@@ -43,12 +43,13 @@ test('formatMetric', () => {
   expect(Utils.formatMetric(-123.12345)).toEqual('-123.1');
   expect(Utils.formatMetric(-123.15555)).toEqual('-123.2');
 
-  expect(Utils.formatMetric(1234.12345)).toEqual('1234.1');
-  expect(Utils.formatMetric(1234.15555)).toEqual('1234.2');
-  expect(Utils.formatMetric(-1234.12345)).toEqual('-1234.1');
-  expect(Utils.formatMetric(-1234.15555)).toEqual('-1234.2');
+  expect(Utils.formatMetric(1234.12345)).toEqual('1 234');
+  expect(Utils.formatMetric(-1234.15555)).toEqual('-1 234');
+  expect(Utils.formatMetric(12345)).toEqual('12 345');
 
-  expect(Utils.formatMetric(1e30)).toEqual('1e+30');
+  // Outside 1e-4..1e4: scaled notation.
+  expect(Utils.formatMetric(1e30)).toEqual('1.000×10³⁰');
+  expect(Utils.formatMetric(-0.0000012345)).toEqual('-1.235×10⁻⁶');
 });
 
 test('formatDuration', () => {

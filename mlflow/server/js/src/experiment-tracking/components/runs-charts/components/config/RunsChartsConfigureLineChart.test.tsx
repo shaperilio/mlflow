@@ -114,14 +114,15 @@ describe('RunsChartsConfigureLineChart', () => {
     expect(onStateChangeMock).toHaveBeenCalledTimes(0);
     fireEvent.change(xRangeMaxInput, { target: { value: '40' } });
     expect(onStateChangeMock).toHaveBeenCalledTimes(1);
+    // A single Y bound is a valid (one-sided) range, so every Y change is committed right away.
     fireEvent.change(yRangeMinInput, { target: { value: '5' } });
-    expect(onStateChangeMock).toHaveBeenCalledTimes(1);
+    expect(onStateChangeMock).toHaveBeenCalledTimes(2);
     fireEvent.change(yRangeMaxInput, { target: { value: '15' } });
-    expect(onStateChangeMock).toHaveBeenCalledTimes(2);
-    fireEvent.change(yRangeMaxInput, { target: { value: '' } });
-    expect(onStateChangeMock).toHaveBeenCalledTimes(2);
-    fireEvent.change(yRangeMinInput, { target: { value: '' } });
     expect(onStateChangeMock).toHaveBeenCalledTimes(3);
+    fireEvent.change(yRangeMaxInput, { target: { value: '' } });
+    expect(onStateChangeMock).toHaveBeenCalledTimes(4);
+    fireEvent.change(yRangeMinInput, { target: { value: '' } });
+    expect(onStateChangeMock).toHaveBeenCalledTimes(5);
   });
 
   test('correctly transitions x and y ranges when switching to log value', () => {

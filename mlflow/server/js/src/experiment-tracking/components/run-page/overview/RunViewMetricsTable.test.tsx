@@ -20,12 +20,12 @@ const testRunInfo = {
   runUuid: testRunUuid,
 } as RunInfoEntity;
 
-// Generates array of metric_a1, metric_a2, ..., metric_b2, ..., metric_c3 metric keys with values from 1.0 to 9.0
+// Generates array of metric_a1, metric_a2, ..., metric_b2, ..., metric_c3 metric keys with values from 1 to 9
 const sampleLatestMetrics = keyBy(
   ['a', 'b', 'c'].flatMap((letter, letterIndex) =>
     [1, 2, 3].map((digit, digitIndex) => ({
       key: `metric_${letter}${digit}`,
-      value: (letterIndex * 3 + digitIndex + 1).toFixed(1),
+      value: letterIndex * 3 + digitIndex + 1,
     })),
   ),
   'key',
@@ -50,8 +50,9 @@ describe('RunViewMetricsTable', () => {
   test('Renders the table with values and filters values', async () => {
     renderComponent();
     expect(screen.getByRole('heading', { name: 'Metrics (9)' })).toBeInTheDocument();
-    expect(screen.getByRole('row', { name: 'metric_a1 1.0' })).toBeInTheDocument();
-    expect(screen.getByRole('row', { name: 'metric_c3 9.0' })).toBeInTheDocument();
+    // Smart number formatting (on by default) shows integers without decimals
+    expect(screen.getByRole('row', { name: 'metric_a1 1' })).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: 'metric_c3 9' })).toBeInTheDocument();
 
     // Expect 10 rows for 9 metrics and 1 table header
     expect(screen.getAllByRole('row')).toHaveLength(9 + 1);

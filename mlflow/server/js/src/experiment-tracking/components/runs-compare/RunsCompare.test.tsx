@@ -368,11 +368,12 @@ describe.each(testCases)('RunsCompare $description', ({ setup: testCaseSetup }) 
       } as any,
     });
 
+    // Built-in sections lead, the rest follow in natural order
     await waitFor(() => {
       expectElementsInOrder([
-        screen.getByText('tmp'),
         screen.getByText('Model metrics'),
         screen.getByText('System metrics'),
+        screen.getByText('tmp'),
       ]);
     });
   });
@@ -383,10 +384,14 @@ describe.each(testCases)('RunsCompare $description', ({ setup: testCaseSetup }) 
       comparedRuns: [{ runUuid: 'run_latest', runName: 'Last run', runInfo: { runUuid: 'run_latest' } } as any],
     });
 
+    // Not user-reordered yet, so the saved [tmp, Model metrics, System metrics] order is normalized
+    // to built-in sections first
     await waitFor(() => {
-      expect(screen.getByText('tmp')).toBeInTheDocument();
-      expect(screen.getByText('Model metrics')).toBeInTheDocument();
-      expect(screen.getByText('System metrics')).toBeInTheDocument();
+      expectElementsInOrder([
+        screen.getByText('Model metrics'),
+        screen.getByText('System metrics'),
+        screen.getByText('tmp'),
+      ]);
     });
 
     const metricSection0 = getSectionArea('tmp');
@@ -396,19 +401,19 @@ describe.each(testCases)('RunsCompare $description', ({ setup: testCaseSetup }) 
       'experiment-view-compare-runs-section-header-drag-handle',
     );
 
-    // Move section 'tmp' to section 'System metrics'
+    // Move section 'tmp' to section 'Model metrics'
     act(() => {
       fireEvent.dragStart(metricSection0Handle);
-      fireEvent.dragEnter(metricSection2);
-      fireEvent.dragOver(metricSection2);
-      fireEvent.drop(metricSection2);
+      fireEvent.dragEnter(metricSection1);
+      fireEvent.dragOver(metricSection1);
+      fireEvent.drop(metricSection1);
     });
 
     await waitFor(async () => {
       expectElementsInOrder([
+        screen.getByText('tmp'),
         screen.getByText('Model metrics'),
         screen.getByText('System metrics'),
-        screen.getByText('tmp'),
       ]);
     });
 
@@ -426,9 +431,9 @@ describe.each(testCases)('RunsCompare $description', ({ setup: testCaseSetup }) 
 
     await waitFor(async () => {
       expectElementsInOrder([
+        screen.getByText('tmp'),
         screen.getByText('System metrics'),
         screen.getByText('Model metrics'),
-        screen.getByText('tmp'),
       ]);
     });
   });
@@ -459,10 +464,10 @@ describe.each(testCases)('RunsCompare $description', ({ setup: testCaseSetup }) 
     await waitFor(() => {
       expect(screen.queryByText('tmp1')).not.toBeInTheDocument();
       expectElementsInOrder([
-        screen.getByText('tmp'),
-        screen.getByText('tmp2'),
         screen.getByText('Model metrics'),
         screen.getByText('System metrics'),
+        screen.getByText('tmp'),
+        screen.getByText('tmp2'),
       ]);
     });
 
@@ -470,7 +475,7 @@ describe.each(testCases)('RunsCompare $description', ({ setup: testCaseSetup }) 
 
     cleanup();
 
-    // New run is added to the end of the list
+    // New run's section is sorted into place, since the sections aren't user-reordered
 
     createComponentMock({
       comparedRuns: [
@@ -497,11 +502,11 @@ describe.each(testCases)('RunsCompare $description', ({ setup: testCaseSetup }) 
 
     await waitFor(() => {
       expectElementsInOrder([
+        screen.getByText('Model metrics'),
+        screen.getByText('System metrics'),
         screen.getByText('tmp'),
         screen.getByText('tmp1'),
         screen.getByText('tmp2'),
-        screen.getByText('Model metrics'),
-        screen.getByText('System metrics'),
       ]);
     });
   });
@@ -531,10 +536,10 @@ describe.each(testCases)('RunsCompare $description', ({ setup: testCaseSetup }) 
 
     await waitFor(() => {
       expectElementsInOrder([
-        screen.getByText('tmp'),
-        screen.getByText('tmp2'),
         screen.getByText('Model metrics'),
         screen.getByText('System metrics'),
+        screen.getByText('tmp'),
+        screen.getByText('tmp2'),
       ]);
     });
 
@@ -578,12 +583,13 @@ describe.each(testCases)('RunsCompare $description', ({ setup: testCaseSetup }) 
       } as any,
     });
 
+    // User-reordered, so the new section is appended at the end
     await waitFor(() => {
       expectElementsInOrder([
-        screen.getByText('tmp2'),
-        screen.getByText('tmp'),
         screen.getByText('Model metrics'),
         screen.getByText('System metrics'),
+        screen.getByText('tmp2'),
+        screen.getByText('tmp'),
         screen.getByText('tmp1'),
       ]);
     });
@@ -885,10 +891,10 @@ describe.each(testCases)('RunsCompare $description', ({ setup: testCaseSetup }) 
 
     await waitFor(() => {
       expectElementsInOrder([
-        screen.getByText('tmp'),
-        screen.getByText('tmp2'),
         screen.getByText('Model metrics'),
         screen.getByText('System metrics'),
+        screen.getByText('tmp'),
+        screen.getByText('tmp2'),
       ]);
     });
 
@@ -930,11 +936,11 @@ describe.each(testCases)('RunsCompare $description', ({ setup: testCaseSetup }) 
 
     await waitFor(() => {
       expectElementsInOrder([
+        screen.getByText('Model metrics'),
+        screen.getByText('System metrics'),
         screen.getByText('tmp'),
         screen.getByText('tmp1'),
         screen.getByText('tmp2'),
-        screen.getByText('Model metrics'),
-        screen.getByText('System metrics'),
       ]);
     });
   });
