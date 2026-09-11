@@ -352,6 +352,8 @@ describe('ExperimentViewRunsTable', () => {
       'attributes.`Models`',
       'attributes.`Dataset`',
       'attributes.`Description`',
+      // Duration is an optional (selectable) column in this fork
+      'attributes.`Duration`',
     ];
 
     simpleExperimentsWrapper.setProps({
