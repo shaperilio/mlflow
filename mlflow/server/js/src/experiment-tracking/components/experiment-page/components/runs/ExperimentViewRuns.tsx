@@ -255,6 +255,13 @@ export const ExperimentViewRuns = React.memo((props: ExperimentViewRunsProps) =>
     columnApiRef.current?.resetColumnState();
   }, [updateUIState]);
 
+  // Picking a sort in the sort selector drops the table's client-side (header) sort, even when the
+  // picked sort is the server sort already in effect: clearing the grid's sort fires sortChanged,
+  // which the table reconciles by dropping its client sort (see ExperimentViewRunsTable).
+  const clearClientSort = useCallback(() => {
+    columnApiRef.current?.applyColumnState({ defaultState: { sort: null } });
+  }, []);
+
   const tableElement =
     requestError instanceof Error && !isLoadingRuns ? (
       <ExperimentViewRunsRequestError error={requestError} />
@@ -307,6 +314,7 @@ export const ExperimentViewRuns = React.memo((props: ExperimentViewRunsProps) =>
           isLoading={isLoadingRuns}
           isComparingExperiments={isComparingExperiments}
           onResetColumns={resetColumns}
+          onSortSelected={clearClientSort}
         />
         <div
           ref={ref}

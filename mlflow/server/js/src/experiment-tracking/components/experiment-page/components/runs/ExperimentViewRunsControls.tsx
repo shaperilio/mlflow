@@ -38,6 +38,7 @@ type ExperimentViewRunsControlsProps = {
   isLoading: boolean;
   isComparingExperiments: boolean;
   onResetColumns: () => void;
+  onSortSelected?: () => void;
 };
 
 /**
@@ -60,6 +61,7 @@ export const ExperimentViewRunsControls = React.memo(
     isLoading,
     isComparingExperiments,
     onResetColumns,
+    onSortSelected,
   }: ExperimentViewRunsControlsProps) => {
     const [compareRunsMode, setCompareRunsMode] = useExperimentPageViewMode();
 
@@ -144,6 +146,7 @@ export const ExperimentViewRunsControls = React.memo(
                   orderByKey={orderByKey}
                   metricKeys={filteredMetricKeys}
                   paramKeys={filteredParamKeys}
+                  onSortSelected={onSortSelected}
                 />
 
                 {!isComparingRuns && (

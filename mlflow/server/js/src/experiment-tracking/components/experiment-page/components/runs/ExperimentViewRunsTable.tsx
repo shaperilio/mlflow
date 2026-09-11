@@ -286,9 +286,13 @@ export const ExperimentViewRunsTable = React.memo(
     allColumnsRef.current = allColumns;
 
     const captureColumnStateRef = useRef<((api: ColumnApi) => void) & { cancel(): void }>();
+    // The layout this grid last persisted, to tell its own writes apart from a layout replaced from
+    // outside (e.g. discarding or undoing a shared view), which has to be applied to the grid.
+    const lastCapturedLayoutRef = useRef<Pick<ExperimentPageUIState, 'columnOrder' | 'columnWidths'> | null>(null);
     useEffect(() => {
       const fn = debounce((api: ColumnApi) => {
         const { columnOrder, columnWidths } = columnStateToPrefs(api.getColumnState(), allColumnsRef.current);
+        lastCapturedLayoutRef.current = { columnOrder, columnWidths };
         updateUIState((state: ExperimentPageUIState) => ({ ...state, columnOrder, columnWidths }));
       }, 250);
       captureColumnStateRef.current = fn;
@@ -348,7 +352,7 @@ export const ExperimentViewRunsTable = React.memo(
     // structurally changes — and only once the user has actually customized,
     // so the grid keeps its natural columnDefs order by default. Visibility
     // stays on the selectedColumns effect, so only order + width are applied.
-    useEffect(() => {
+    const applyPersistedLayout = useCallback(() => {
       if (!columnApi || isComparingRuns) {
         return;
       }
@@ -360,6 +364,9 @@ export const ExperimentViewRunsTable = React.memo(
       if (state.length > 0) {
         columnApi.applyColumnState({ state, applyOrder: true });
       }
+    }, [columnApi, isComparingRuns]);
+    useEffect(() => {
+      applyPersistedLayout();
       // `allColumns` populates one tick after grid-ready; depending on it ensures
       // the persisted order is applied once colIds are known. It stays stable
       // across user drags, so this won't re-run and fight an in-progress gesture.
@@ -367,7 +374,17 @@ export const ExperimentViewRunsTable = React.memo(
       // formats come from the rows), which would re-apply a stale layout over a column the user
       // just moved or resized. `allColumns` already changes whenever the column set does, and
       // `maintainColumnOrder` keeps the order across columnDefs updates.
-    }, [columnApi, isComparingRuns, allColumns]);
+    }, [applyPersistedLayout, allColumns]);
+
+    // Also apply a persisted layout that was replaced from outside the grid (discarding or undoing a
+    // shared view swaps in the user's own layout without remounting the table). The grid's own
+    // captures are skipped, so a fresh drag is never reverted.
+    useEffect(() => {
+      const layout = { columnOrder: uiState.columnOrder, columnWidths: uiState.columnWidths };
+      if (!isEqual(layout, lastCapturedLayoutRef.current)) {
+        applyPersistedLayout();
+      }
+    }, [applyPersistedLayout, uiState.columnOrder, uiState.columnWidths]);
 
     const gridSizeHandler = useCallback(
       (api: GridApi) => {

@@ -174,11 +174,14 @@ export const ExperimentViewRunsSortSelectorV2 = React.memo(
     paramKeys,
     orderByAsc,
     orderByKey,
+    onSortSelected,
   }: {
     orderByKey: string;
     orderByAsc: boolean;
     metricKeys: string[];
     paramKeys: string[];
+    /** Called whenever a sort key or direction is picked, even if it's the one already in effect. */
+    onSortSelected?: () => void;
   }) => {
     const intl = useIntl();
     const [open, setOpen] = useState(false);
@@ -267,7 +270,10 @@ export const ExperimentViewRunsSortSelectorV2 = React.memo(
             sortOptions={sortOptions}
             orderByKey={orderByKey}
             orderByAsc={orderByAsc}
-            onOptionSelected={() => setOpen(false)}
+            onOptionSelected={() => {
+              setOpen(false);
+              onSortSelected?.();
+            }}
           />
         </DropdownMenu.Content>
       </DropdownMenu.Root>
