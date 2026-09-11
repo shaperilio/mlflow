@@ -759,7 +759,11 @@ export const RunsMetricsLinePlot = React.memo(
       if (xAxisKey !== RunsChartsLineChartXAxisType.METRIC || !selectedXAxisMetricKey) {
         return null;
       }
-      const metricKeys = (selectedMetricKeys ?? [metricKey]).filter((key): key is string => Boolean(key));
+      // Right-axis series are paired with the X metric the same way, so they count too.
+      const metricKeys = [
+        ...(selectedMetricKeys ?? [metricKey]),
+        ...(showSecondYAxis ? (selectedMetricKeysRight ?? []) : []),
+      ].filter((key): key is string => Boolean(key));
       const truncatedMetrics = new Set<string>();
       for (const runEntry of runsData) {
         const xHistory = runEntry.metricsHistory?.[selectedXAxisMetricKey];
@@ -783,7 +787,15 @@ export const RunsMetricsLinePlot = React.memo(
       return truncatedMetrics.size > 0
         ? { xMetric: selectedXAxisMetricKey, metrics: Array.from(truncatedMetrics) }
         : null;
-    }, [xAxisKey, selectedXAxisMetricKey, selectedMetricKeys, metricKey, runsData]);
+    }, [
+      xAxisKey,
+      selectedXAxisMetricKey,
+      selectedMetricKeys,
+      metricKey,
+      showSecondYAxis,
+      selectedMetricKeysRight,
+      runsData,
+    ]);
 
     const { layoutHeight, layoutWidth, setContainerDiv, containerDiv, isDynamicSizeSupported } = useDynamicPlotSize();
 

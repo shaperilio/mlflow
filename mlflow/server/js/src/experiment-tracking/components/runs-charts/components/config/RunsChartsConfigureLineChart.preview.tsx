@@ -118,6 +118,8 @@ const RunsChartsConfigureLineChartPreviewImpl = ({
     aggregateFunction,
     selectedXAxisMetricKey: xAxisKey === RunsChartsLineChartXAxisType.METRIC ? selectedXAxisMetricKey : undefined,
     ignoreOutliers: cardConfig.ignoreOutliers ?? false,
+    rightAxisMetricKeys: cardConfig.showSecondYAxis ? cardConfig.selectedMetricKeysRight : undefined,
+    ignoreOutliersRight: cardConfig.ignoreOutliersRight,
   });
 
   // Use grouped data traces only if enabled and if there are any groups

@@ -86,57 +86,64 @@ export const RunsMultipleTracesTooltipBody = ({ hoverData }: { hoverData: RunsCo
             alignItems: 'center',
           }}
         >
-          {formatSpec?.headerAnnotation && (
-            <>
-              <span />
-              <span />
-              <span
-                css={{
-                  fontSize: theme.typography.fontSizeSm,
-                  color: theme.colors.textSecondary,
-                  textAlign: 'right',
-                }}
-              >
-                {formatSpec.headerAnnotation}
-              </span>
-            </>
-          )}
           {tooltipLegendItems.map(
-            ({ displayName, color, uuid, value, dashStyle, formatSpec: itemFormatSpec, metricKey }, idx) => (
-              <React.Fragment key={uuid}>
-                {/* Blank spacer row between metric groups (incl. the left/right axis boundary). */}
-                {idx > 0 && metricKey !== tooltipLegendItems[idx - 1]?.metricKey && (
-                  <div css={{ gridColumn: '1 / -1', height: theme.spacing.sm }} />
-                )}
-                <TraceLabelColorIndicator color={color || 'transparent'} dashStyle={dashStyle} />
-
-                <div
-                  css={{
-                    marginRight: theme.spacing.md,
-                    fontSize: theme.typography.fontSizeSm,
-                    color: hoveredTraceUuid === uuid ? 'unset' : theme.colors.textPlaceholder,
-                  }}
-                >
-                  {displayName}
-                </div>
-                <div>
-                  {!isUndefined(value) && (
-                    <span
-                      css={{
-                        fontWeight: hoveredTraceUuid === uuid ? 'bold' : 'normal',
-                        color: hoveredTraceUuid === uuid ? 'unset' : theme.colors.textPlaceholder,
-                      }}
-                    >
-                      {(() => {
-                        const n = typeof value === 'string' ? parseFloat(value) : value;
-                        const spec = smartFormatting ? (itemFormatSpec ?? formatSpec) : null;
-                        return spec ? spec.format(n) : Utils.formatMetric(n);
-                      })()}
-                    </span>
+            ({ displayName, color, uuid, value, dashStyle, formatSpec: itemFormatSpec, metricKey }, idx) => {
+              // Rows on each Y axis are scaled by that axis's own spec, so show a spec's scale
+              // annotation (e.g. "×10⁻⁵") above the first row that uses it, not just the left axis's.
+              const rowSpec = smartFormatting ? (itemFormatSpec ?? formatSpec) : null;
+              const previousItem = tooltipLegendItems[idx - 1];
+              const previousSpec = idx > 0 && smartFormatting ? (previousItem?.formatSpec ?? formatSpec) : undefined;
+              const annotation = rowSpec !== previousSpec ? rowSpec?.headerAnnotation : undefined;
+              return (
+                <React.Fragment key={uuid}>
+                  {/* Blank spacer row between metric groups (incl. the left/right axis boundary). */}
+                  {idx > 0 && metricKey !== previousItem?.metricKey && (
+                    <div css={{ gridColumn: '1 / -1', height: theme.spacing.sm }} />
                   )}
-                </div>
-              </React.Fragment>
-            ),
+                  {annotation && (
+                    <>
+                      <span />
+                      <span />
+                      <span
+                        css={{
+                          fontSize: theme.typography.fontSizeSm,
+                          color: theme.colors.textSecondary,
+                          textAlign: 'right',
+                        }}
+                      >
+                        {annotation}
+                      </span>
+                    </>
+                  )}
+                  <TraceLabelColorIndicator color={color || 'transparent'} dashStyle={dashStyle} />
+
+                  <div
+                    css={{
+                      marginRight: theme.spacing.md,
+                      fontSize: theme.typography.fontSizeSm,
+                      color: hoveredTraceUuid === uuid ? 'unset' : theme.colors.textPlaceholder,
+                    }}
+                  >
+                    {displayName}
+                  </div>
+                  <div>
+                    {!isUndefined(value) && (
+                      <span
+                        css={{
+                          fontWeight: hoveredTraceUuid === uuid ? 'bold' : 'normal',
+                          color: hoveredTraceUuid === uuid ? 'unset' : theme.colors.textPlaceholder,
+                        }}
+                      >
+                        {(() => {
+                          const n = typeof value === 'string' ? parseFloat(value) : value;
+                          return rowSpec ? rowSpec.format(n) : Utils.formatMetric(n);
+                        })()}
+                      </span>
+                    )}
+                  </div>
+                </React.Fragment>
+              );
+            },
           )}
         </div>
       </div>

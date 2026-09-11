@@ -22,6 +22,9 @@ export interface UseGroupedChartRunDataParams {
   sampledDataResultsByRunUuid: Dictionary<SampledMetricsByRun>;
   selectedXAxisMetricKey?: string;
   ignoreOutliers: boolean;
+  /** Metrics on a line chart's second (right-hand) Y axis; these use `ignoreOutliersRight` instead. */
+  rightAxisMetricKeys?: string[];
+  ignoreOutliersRight?: boolean;
 }
 
 /**
@@ -36,7 +39,9 @@ export const useGroupedChartRunData = ({
   metricKeys,
   sampledDataResultsByRunUuid,
   selectedXAxisMetricKey,
-  ignoreOutliers,
+  ignoreOutliers: ignoreOutliersLeft,
+  rightAxisMetricKeys,
+  ignoreOutliersRight,
 }: UseGroupedChartRunDataParams) => {
   return useMemo(() => {
     if (!enabled || !aggregateFunction) {
@@ -50,6 +55,9 @@ export const useGroupedChartRunData = ({
         const aggregatedMetricsHistory: Record<string, SyntheticMetricHistory> = {};
         metricKeys.forEach((metricKey) => {
           invariant(group.groupParentInfo, 'groupParentInfo should be defined');
+          const ignoreOutliers = rightAxisMetricKeys?.includes(metricKey)
+            ? Boolean(ignoreOutliersRight)
+            : ignoreOutliersLeft;
 
           const aggregatedRunUuidsInGroup =
             group.groupParentInfo.runUuidsForAggregation ?? group.groupParentInfo.runUuids;
@@ -106,6 +114,8 @@ export const useGroupedChartRunData = ({
     enabled,
     aggregateFunction,
     selectedXAxisMetricKey,
-    ignoreOutliers,
+    ignoreOutliersLeft,
+    rightAxisMetricKeys,
+    ignoreOutliersRight,
   ]);
 };

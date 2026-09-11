@@ -265,6 +265,9 @@ export const RunsChartsLineChartCard = ({
   // Zoom-only state (seeded undefined). The manual Y range is applied live via `resolvedYRange`, so a
   // stale value can't get stuck after the range is cleared.
   const [yRangeLocal, setYRangeLocal] = useState<[number, number] | undefined>(undefined);
+  // Same for the second (right-hand) Y axis. The plot's layout is rebuilt on every render, so a zoom
+  // that isn't captured here would be undone by the next re-render.
+  const [yRangeRightLocal, setYRangeRightLocal] = useState<[number, number] | undefined>(undefined);
 
   const { setOffsetTimestamp, stepRange, xRangeLocal, setXRangeLocal } = useCompareRunChartSelectedRange(
     xAxisKey,
@@ -290,7 +293,13 @@ export const RunsChartsLineChartCard = ({
     let xAxisMax = xRangeLocal?.[1];
 
     const { autorange: yAxisAutorange, range: newYRange } = layout.yaxis || {};
-    const yRangeChanged = !isEqual(yAxisAutorange ? [undefined, undefined] : newYRange, [yAxisMin, yAxisMax]);
+    // Compare against the range the plot was actually given (zoom, else the manual range), so a chart
+    // with a manual Y range doesn't read every update as a zoom and close the tooltip/context menu.
+    const currentYRange = yRangeLocal ?? resolvedYRange;
+    const yRangeChanged = !isEqual(yAxisAutorange ? [undefined, undefined] : newYRange, [
+      currentYRange?.[0],
+      currentYRange?.[1],
+    ]);
 
     if (yRangeChanged) {
       // When user zoomed in/out or changed the Y range manually, hide the tooltip
@@ -310,9 +319,16 @@ export const RunsChartsLineChartCard = ({
       // Remove saved range if chart is back to default viewport
       xAxisMin = undefined;
       xAxisMax = undefined;
-    } else if (newXRange) {
+    } else if (newXRange && !effectiveXRange) {
+      // (Skipped while a manual/global X range controls the axis: that range is re-applied live, and
+      // the offset timestamps only matter for a zoom, which isn't captured then — see below.)
       const ungroupedRunUuids = compact(slicedRuns.map(({ runInfo }) => runInfo?.runUuid));
       const groupedRunUuids = slicedRuns.flatMap(({ groupParentInfo }) => groupParentInfo?.runUuids ?? []);
+
+      // Only store a changed offset: a fresh array on every plot update would re-render the card,
+      // which re-runs Plotly.react (the layout is rebuilt each render) and fires this again, forever.
+      const updateOffsetTimestamp = (next: [number, number] | undefined) =>
+        setOffsetTimestamp((current) => (isEqual(current, next) ? current : next));
 
       if (!shouldEnableRelativeTimeDateAxis() && xAxisKey === RunsChartsLineChartXAxisType.TIME_RELATIVE) {
         const timestampRange = findAbsoluteTimestampRangeForRelativeRange(
@@ -320,7 +336,7 @@ export const RunsChartsLineChartCard = ({
           [...ungroupedRunUuids, ...groupedRunUuids],
           newXRange as [number, number],
         );
-        setOffsetTimestamp([...(timestampRange as [number, number])]);
+        updateOffsetTimestamp([...(timestampRange as [number, number])]);
       } else if (xAxisKey === RunsChartsLineChartXAxisType.TIME_RELATIVE_HOURS) {
         const timestampRange = findAbsoluteTimestampRangeForRelativeRange(
           resultsByRunUuid,
@@ -328,9 +344,9 @@ export const RunsChartsLineChartCard = ({
           newXRange as [number, number],
           1000 * 60 * 60, // Convert hours to milliseconds
         );
-        setOffsetTimestamp([...(timestampRange as [number, number])]);
+        updateOffsetTimestamp([...(timestampRange as [number, number])]);
       } else {
-        setOffsetTimestamp(undefined);
+        updateOffsetTimestamp(undefined);
       }
       xAxisMin = newXRange[0];
       xAxisMax = newXRange[1];
@@ -346,6 +362,16 @@ export const RunsChartsLineChartCard = ({
     if (resolvedYRange) {
       yAxisMin = undefined;
       yAxisMax = undefined;
+    }
+
+    // Right-hand axis zoom: like the left axis, not captured while a manual range controls it.
+    const { autorange: y2Autorange, range: newY2Range } = layout.yaxis2 || {};
+    const nextYRangeRight =
+      config.showSecondYAxis && !resolvedRangeRight && !y2Autorange && newY2Range
+        ? ([newY2Range[0], newY2Range[1]] as [number, number])
+        : undefined;
+    if (!isEqual(nextYRangeRight, yRangeRightLocal)) {
+      setYRangeRightLocal(nextYRangeRight);
     }
 
     if (
@@ -399,6 +425,8 @@ export const RunsChartsLineChartCard = ({
     aggregateFunction,
     selectedXAxisMetricKey: xAxisKey === RunsChartsLineChartXAxisType.METRIC ? selectedXAxisMetricKey : undefined,
     ignoreOutliers: config.ignoreOutliers ?? false,
+    rightAxisMetricKeys: config.showSecondYAxis ? config.selectedMetricKeysRight : undefined,
+    ignoreOutliersRight: config.ignoreOutliersRight,
   });
 
   // Use grouped data traces only if enabled and if there are any groups
@@ -440,6 +468,12 @@ export const RunsChartsLineChartCard = ({
     config.scaleTypeRight,
   ]);
 
+  // The right axis's zoom takes precedence over its manual range, as on the left axis.
+  const plotRangeRight = useMemo(
+    () => (yRangeRightLocal ? { yMin: yRangeRightLocal[0], yMax: yRangeRightLocal[1] } : resolvedRangeRight),
+    [yRangeRightLocal, resolvedRangeRight],
+  );
+
   const [imageDownloadHandler, setImageDownloadHandler] = useChartImageDownloadHandler();
 
   // If the component is not in the viewport, we don't want to render the chart
@@ -473,7 +507,7 @@ export const RunsChartsLineChartCard = ({
           showSecondYAxis={config.showSecondYAxis}
           selectedMetricKeysRight={config.selectedMetricKeysRight}
           scaleTypeRight={config.scaleTypeRight}
-          rangeRight={resolvedRangeRight}
+          rangeRight={plotRangeRight}
           selectedXAxisMetricKey={selectedXAxisMetricKey}
           lineSmoothness={lineSmoothness}
           useDefaultHoverBox={false}
