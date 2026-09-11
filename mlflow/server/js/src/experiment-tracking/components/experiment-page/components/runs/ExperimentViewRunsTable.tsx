@@ -54,7 +54,7 @@ import { useExperimentTableSelectRowHandler } from '../../hooks/useExperimentTab
 import { useToggleRowVisibilityCallback } from '../../hooks/useToggleRowVisibilityCallback';
 import { ExperimentViewRunsTableHeaderContextProvider } from './ExperimentViewRunsTableHeaderContext';
 import { useRunsHighlightTableRow } from '../../../runs-charts/hooks/useRunsHighlightTableRow';
-import { debounce, isEmpty, isEqual } from 'lodash';
+import { debounce, isEmpty, isEqual, sortBy } from 'lodash';
 import { columnStateToPrefs, getReorderCorrection, prefsToColumnState } from './agGridColumnPrefsAdapter';
 
 const ROW_BUFFER = 101; // How many rows to keep rendered, even ones not visible
@@ -269,7 +269,10 @@ export const ExperimentViewRunsTable = React.memo(
         .filter((column) => !column.getColDef().checkboxSelection)
         .map((column) => column.getColId())
         .filter((id): id is string => Boolean(id));
-      setAllColumns((prev) => (isEqual(prev, ids) ? prev : ids));
+      // Only the set of ids matters to its consumers. Keeping `prev` when only the order differs
+      // (e.g. right after a drag, on the next columnDefs rebuild from a data update) stops the
+      // persisted-layout effect below from re-applying the not-yet-captured old order.
+      setAllColumns((prev) => (isEqual(sortBy(prev), sortBy(ids)) ? prev : ids));
     }, [columnApi, columnDefs, selectedColumns, isComparingRuns]);
 
     // Column order + width persist via uiState, riding the existing localStorage
@@ -465,10 +468,15 @@ export const ExperimentViewRunsTable = React.memo(
       }
     }, []);
 
-    // Keep pinned runs at the top regardless of the (client-side) sort order. Runs after every
-    // sort; a no-op for the server-ordered view where pinned rows already lead.
+    // Keep pinned runs at the top under a client-side sort. AG Grid calls this on every sort pass,
+    // even with no sort active, so it only acts while a client sort is: the server order already
+    // leads with pinned rows. Grouped view is left alone, since there pinned runs lead within their
+    // own group and hoisting them would move them out from under their group's header.
     const postSortRows = useCallback((params: PostSortRowsParams) => {
       const { nodes } = params;
+      if (!clientSortRef.current || nodes.some((node) => node.data?.groupParentInfo)) {
+        return;
+      }
       let insertAt = 0;
       for (let i = 0; i < nodes.length; i += 1) {
         if (nodes[i]?.data?.pinned) {
