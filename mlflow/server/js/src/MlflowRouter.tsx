@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { LegacySkeleton, useDesignSystemTheme } from '@databricks/design-system';
+import { useLocalStorage } from '@databricks/web-shared/hooks';
 import { useDocumentTitle } from '@databricks/web-shared/routing';
 
 import ErrorModal from './experiment-tracking/components/modals/ErrorModal';
@@ -72,17 +73,23 @@ type MlflowRouteDef = {
 const MlflowRootLayout = ({
   showSidebar,
   setShowSidebar,
+  setShowSidebarTemporarily,
 }: {
   showSidebar: boolean;
   setShowSidebar: (showSidebar: boolean) => void;
+  setShowSidebarTemporarily: (showSidebar: boolean) => void;
 }) => {
   const { theme } = useDesignSystemTheme();
   const { workflowType } = useWorkflowType();
 
   // Expose the app-shell sidebar toggle so deep pages (e.g. the review-queue
   // focused view) can collapse it and restore the prior state. See
-  // MlflowSidebarContext.
-  const sidebarContextValue = useMemo(() => ({ showSidebar, setShowSidebar }), [showSidebar, setShowSidebar]);
+  // MlflowSidebarContext. Their changes are temporary: they don't touch the
+  // user's persisted choice.
+  const sidebarContextValue = useMemo(
+    () => ({ showSidebar, setShowSidebar: setShowSidebarTemporarily }),
+    [showSidebar, setShowSidebarTemporarily],
+  );
 
   return (
     <MlflowSidebarContext.Provider value={sidebarContextValue}>
@@ -139,7 +146,30 @@ const MlflowRootRoute = () => {
   const routeTitle = usePageTitle();
   useDocumentTitle({ title: routeTitle });
 
-  const [showSidebar, setShowSidebar] = useState(true);
+  // The user's collapse/expand choice (the sidebar's own toggle) persists across reloads.
+  const [sidebarPreference, setSidebarPreference] = useLocalStorage({
+    key: 'mlflow.sidebar-shown',
+    version: 1,
+    initialValue: true,
+  });
+  // Temporary, in-memory overrides (auto-hide on single experiment pages, review-queue focus
+  // mode) sit on top of the preference so they're never persisted. Undefined => use the preference.
+  const [sidebarOverride, setSidebarOverride] = useState<boolean | undefined>(undefined);
+  const showSidebar = sidebarOverride ?? sidebarPreference;
+
+  const setShowSidebar = useCallback(
+    (show: boolean) => {
+      setSidebarOverride(undefined);
+      setSidebarPreference(show);
+    },
+    [setSidebarPreference],
+  );
+  // Restoring to the preference clears the override, so a later preference change shows through.
+  const setShowSidebarTemporarily = useCallback(
+    (show: boolean) => setSidebarOverride(show === sidebarPreference ? undefined : show),
+    [sidebarPreference],
+  );
+
   const { experimentId } = useParams();
   const enableWorkflowBasedNavigation = shouldEnableWorkflowBasedNavigation();
 
@@ -150,14 +180,18 @@ const MlflowRootRoute = () => {
     if (enableWorkflowBasedNavigation) {
       return;
     }
-    setShowSidebar(enableWorkflowBasedNavigation || !isSingleExperimentPage);
+    setSidebarOverride(isSingleExperimentPage ? false : undefined);
   }, [isSingleExperimentPage, enableWorkflowBasedNavigation]);
 
   return (
     <AssistantProvider>
       <AssistantRouteContextProvider />
       <WorkflowTypeProvider>
-        <MlflowRootLayout showSidebar={showSidebar} setShowSidebar={setShowSidebar} />
+        <MlflowRootLayout
+          showSidebar={showSidebar}
+          setShowSidebar={setShowSidebar}
+          setShowSidebarTemporarily={setShowSidebarTemporarily}
+        />
       </WorkflowTypeProvider>
     </AssistantProvider>
   );
