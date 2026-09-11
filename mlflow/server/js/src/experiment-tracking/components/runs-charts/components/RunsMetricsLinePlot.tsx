@@ -38,7 +38,11 @@ import {
   HOUR_IN_MILLISECONDS,
   LINE_CHART_RELATIVE_TIME_THRESHOLD,
 } from '@mlflow/mlflow/src/experiment-tracking/constants';
-import { type ChartRange, type RunsChartsLineChartExpression, RunsChartsLineChartYAxisType } from '../runs-charts.types';
+import {
+  type ChartRange,
+  type RunsChartsLineChartExpression,
+  RunsChartsLineChartYAxisType,
+} from '../runs-charts.types';
 import { useChartExpressionParser } from '../hooks/useChartExpressionParser';
 import { getExpressionChartsSortedMetricHistory } from '../utils/expressionCharts.utils';
 import { RunsChartCardLoadingPlaceholder } from './cards/ChartCard.common';
@@ -496,16 +500,18 @@ const prepareXAxisDataForMetricType = (
     return [];
   }
 
-  return metricHistory
-    .filter((datapoint) => ySteps.has(datapoint.step))
-    .map((datapoint) => ({
-      value: normalizeChartValue(datapoint.value),
-      step: datapoint.step,
-    }))
-    // Connect points in step (logging) order, not by X value. Sorting by X value scrambles a
-    // non-monotonic X metric (e.g. a cyclical learning rate) into a zig-zag, because the same X recurs
-    // at many steps; step order traces the actual trajectory. For a monotonic X the two orders match.
-    .sort((a, b) => a.step - b.step);
+  return (
+    metricHistory
+      .filter((datapoint) => ySteps.has(datapoint.step))
+      .map((datapoint) => ({
+        value: normalizeChartValue(datapoint.value),
+        step: datapoint.step,
+      }))
+      // Connect points in step (logging) order, not by X value. Sorting by X value scrambles a
+      // non-monotonic X metric (e.g. a cyclical learning rate) into a zig-zag, because the same X recurs
+      // at many steps; step order traces the actual trajectory. For a monotonic X the two orders match.
+      .sort((a, b) => a.step - b.step)
+  );
 };
 
 const getXAxisPlotlyType = (
@@ -883,7 +889,17 @@ export const RunsMetricsLinePlot = React.memo(
         }
         return updatedLayout;
       });
-    }, [layoutWidth, layoutHeight, effectiveMargin, xAxisParams, yAxisParams, yAxis2Params, width, height, xAxisKeyLabel]);
+    }, [
+      layoutWidth,
+      layoutHeight,
+      effectiveMargin,
+      xAxisParams,
+      yAxisParams,
+      yAxis2Params,
+      width,
+      height,
+      xAxisKeyLabel,
+    ]);
 
     const unhoverCallback = useCallback(() => {
       onUnhover?.();

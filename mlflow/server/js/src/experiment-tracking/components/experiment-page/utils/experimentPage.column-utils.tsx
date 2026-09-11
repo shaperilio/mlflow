@@ -540,7 +540,9 @@ export const useRunsColumnDefinitions = ({
               headerAnnotation: formatSpec?.headerAnnotation,
               clientSortable: true,
             },
-            valueFormatter: customMetricColumnDef?.valueFormatter ?? (formatSpec ? ({ value }) => formatSpec.format(value) : undefined),
+            valueFormatter:
+              customMetricColumnDef?.valueFormatter ??
+              (formatSpec ? ({ value }) => formatSpec.format(value) : undefined),
             cellRendererSelector: ({ data: { groupParentInfo } }) =>
               groupParentInfo ? { component: 'AggregateMetricValueCell' } : undefined,
             cellClassRules: {
@@ -566,12 +568,10 @@ export const useRunsColumnDefinitions = ({
           const rawValues = (rowsData ?? []).map((row) => row[fieldName]);
           // '-' is the default placeholder for runs that don't have this param — exclude it
           const nonEmpty = rawValues.filter((v): v is string => typeof v === 'string' && v !== '' && v !== '-');
-          const isNumericColumn =
-            nonEmpty.length > 0 && nonEmpty.every((v) => !isNaN(Number(v.trim())));
+          const isNumericColumn = nonEmpty.length > 0 && nonEmpty.every((v) => !isNaN(Number(v.trim())));
 
-          const numericFormatSpec = smartFormatting && isNumericColumn
-            ? computeColumnFormatSpec(nonEmpty.map((v) => Number(v.trim())))
-            : null;
+          const numericFormatSpec =
+            smartFormatting && isNumericColumn ? computeColumnFormatSpec(nonEmpty.map((v) => Number(v.trim()))) : null;
 
           return {
             colId: canonicalSortKey,

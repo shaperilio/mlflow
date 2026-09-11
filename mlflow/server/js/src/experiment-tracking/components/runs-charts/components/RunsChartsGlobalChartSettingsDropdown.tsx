@@ -257,7 +257,13 @@ export const RunsChartsGlobalChartSettingsDropdown = ({
               paramKeys={paramKeys}
               tagKeys={tagKeys}
             />
-            <div css={{ marginTop: theme.spacing.xs, fontSize: theme.typography.fontSizeSm, color: theme.colors.textSecondary }}>
+            <div
+              css={{
+                marginTop: theme.spacing.xs,
+                fontSize: theme.typography.fontSizeSm,
+                color: theme.colors.textSecondary,
+              }}
+            >
               <FormattedMessage
                 defaultMessage="Type {brace} for suggestions, e.g. {tokens}"
                 description="Experiment page > global line chart settings > legend label available tokens hint"

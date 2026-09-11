@@ -518,7 +518,11 @@ export const useRunsMultipleTracesTooltipData = ({
       setPins((prev) =>
         prev.map((entry) =>
           entry.id === pinId
-            ? { ...entry, boxLeft: originLeft + (moveEvent.clientX - startX), boxTop: originTop + (moveEvent.clientY - startY) }
+            ? {
+                ...entry,
+                boxLeft: originLeft + (moveEvent.clientX - startX),
+                boxTop: originTop + (moveEvent.clientY - startY),
+              }
             : entry,
         ),
       );

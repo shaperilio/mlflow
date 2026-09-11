@@ -854,7 +854,7 @@ export const RunsChartsConfigureLineChart = ({
                 )
               }
               css={{ width: '100%' }}
-              value={metricKeyList.length === 0 ? [] : state.selectedMetricKeysRight ?? []}
+              value={metricKeyList.length === 0 ? [] : (state.selectedMetricKeysRight ?? [])}
               onChange={updateSelectedMetricsRight}
               disabled={metricKeyList.length === 0}
               dangerouslySetAntdProps={{ showSearch: true }}
@@ -980,7 +980,13 @@ export const RunsChartsConfigureLineChart = ({
             paramKeys={paramKeys}
             tagKeys={tagKeys}
           />
-          <div css={{ marginTop: theme.spacing.xs, fontSize: theme.typography.fontSizeSm, color: theme.colors.textSecondary }}>
+          <div
+            css={{
+              marginTop: theme.spacing.xs,
+              fontSize: theme.typography.fontSizeSm,
+              color: theme.colors.textSecondary,
+            }}
+          >
             <FormattedMessage
               defaultMessage="Type {brace} for suggestions, e.g. {tokens}"
               description="Runs charts > line chart > legend label template available tokens hint"

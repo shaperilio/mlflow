@@ -218,8 +218,14 @@ const SettingsPage = () => {
                     onChange={setIsSmartFormattingEnabled}
                     label={
                       (isSmartFormattingEnabled ?? true)
-                        ? intl.formatMessage({ defaultMessage: 'On', description: 'Smart number formatting enabled label' })
-                        : intl.formatMessage({ defaultMessage: 'Off', description: 'Smart number formatting disabled label' })
+                        ? intl.formatMessage({
+                            defaultMessage: 'On',
+                            description: 'Smart number formatting enabled label',
+                          })
+                        : intl.formatMessage({
+                            defaultMessage: 'Off',
+                            description: 'Smart number formatting disabled label',
+                          })
                     }
                     activeLabel={intl.formatMessage({
                       defaultMessage: 'On',

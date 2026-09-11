@@ -56,9 +56,7 @@ export const RunsMultipleTracesTooltipBody = ({ hoverData }: { hoverData: RunsCo
     // so that formatting is consistent even at steps where every visible value happens to be 0.
     // Fall back to computing from just the visible step's values when no global spec is available.
     const allValues = tooltipLegendItems.map((item) => item.value).filter((v): v is number => typeof v === 'number');
-    const formatSpec = smartFormatting
-      ? (hoverData.formatSpec ?? computeColumnFormatSpec(allValues))
-      : null;
+    const formatSpec = smartFormatting ? (hoverData.formatSpec ?? computeColumnFormatSpec(allValues)) : null;
 
     return (
       <div>
@@ -103,37 +101,43 @@ export const RunsMultipleTracesTooltipBody = ({ hoverData }: { hoverData: RunsCo
               </span>
             </>
           )}
-          {tooltipLegendItems.map(({ displayName, color, uuid, value, dashStyle, formatSpec: itemFormatSpec, metricKey }, idx) => (
-            <React.Fragment key={uuid}>
-              {/* Blank spacer row between metric groups (incl. the left/right axis boundary). */}
-              {idx > 0 && metricKey !== tooltipLegendItems[idx - 1]?.metricKey && (
-                <div css={{ gridColumn: '1 / -1', height: theme.spacing.sm }} />
-              )}
-              <TraceLabelColorIndicator color={color || 'transparent'} dashStyle={dashStyle} />
-
-              <div
-                css={{
-                  marginRight: theme.spacing.md,
-                  fontSize: theme.typography.fontSizeSm,
-                  color: hoveredTraceUuid === uuid ? 'unset' : theme.colors.textPlaceholder,
-                }}
-              >
-                {displayName}
-              </div>
-              <div>
-                {!isUndefined(value) && (
-                  <span
-                    css={{
-                      fontWeight: hoveredTraceUuid === uuid ? 'bold' : 'normal',
-                      color: hoveredTraceUuid === uuid ? 'unset' : theme.colors.textPlaceholder,
-                    }}
-                  >
-                    {(() => { const n = typeof value === 'string' ? parseFloat(value) : value; const spec = smartFormatting ? (itemFormatSpec ?? formatSpec) : null; return spec ? spec.format(n) : Utils.formatMetric(n); })()}
-                  </span>
+          {tooltipLegendItems.map(
+            ({ displayName, color, uuid, value, dashStyle, formatSpec: itemFormatSpec, metricKey }, idx) => (
+              <React.Fragment key={uuid}>
+                {/* Blank spacer row between metric groups (incl. the left/right axis boundary). */}
+                {idx > 0 && metricKey !== tooltipLegendItems[idx - 1]?.metricKey && (
+                  <div css={{ gridColumn: '1 / -1', height: theme.spacing.sm }} />
                 )}
-              </div>
-            </React.Fragment>
-          ))}
+                <TraceLabelColorIndicator color={color || 'transparent'} dashStyle={dashStyle} />
+
+                <div
+                  css={{
+                    marginRight: theme.spacing.md,
+                    fontSize: theme.typography.fontSizeSm,
+                    color: hoveredTraceUuid === uuid ? 'unset' : theme.colors.textPlaceholder,
+                  }}
+                >
+                  {displayName}
+                </div>
+                <div>
+                  {!isUndefined(value) && (
+                    <span
+                      css={{
+                        fontWeight: hoveredTraceUuid === uuid ? 'bold' : 'normal',
+                        color: hoveredTraceUuid === uuid ? 'unset' : theme.colors.textPlaceholder,
+                      }}
+                    >
+                      {(() => {
+                        const n = typeof value === 'string' ? parseFloat(value) : value;
+                        const spec = smartFormatting ? (itemFormatSpec ?? formatSpec) : null;
+                        return spec ? spec.format(n) : Utils.formatMetric(n);
+                      })()}
+                    </span>
+                  )}
+                </div>
+              </React.Fragment>
+            ),
+          )}
         </div>
       </div>
     );

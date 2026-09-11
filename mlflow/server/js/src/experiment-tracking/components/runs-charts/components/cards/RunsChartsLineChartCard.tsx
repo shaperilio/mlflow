@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RunsChartsRunData } from '../RunsCharts.common';
-import { RunsChartsLineChartXAxisType, removeOutliersFromMetricHistory, resolveManualYRange } from '../RunsCharts.common';
+import {
+  RunsChartsLineChartXAxisType,
+  removeOutliersFromMetricHistory,
+  resolveManualYRange,
+} from '../RunsCharts.common';
 import { RunsMetricsLinePlot } from '../RunsMetricsLinePlot';
 import { RunsChartsTooltipMode, useRunsChartsTooltip } from '../../hooks/useRunsChartsTooltip';
 import {
@@ -41,7 +45,7 @@ import { createNodeLevelMetricKey } from '../../../run-page/node-level-metric-ch
 
 // Metrics on the optional second (right-hand) Y axis, or [] when that axis is off.
 const getRightAxisMetricKeys = (cardConfig: RunsChartsLineCardConfig): string[] =>
-  cardConfig.showSecondYAxis ? cardConfig.selectedMetricKeysRight ?? [] : [];
+  cardConfig.showSecondYAxis ? (cardConfig.selectedMetricKeysRight ?? []) : [];
 
 export const getV2ChartTitle = (cardConfig: RunsChartsLineCardConfig, useMetricDisplayName = true): string => {
   // For multi-node system metric charts, just use `displayName` as a title if provided
@@ -53,7 +57,7 @@ export const getV2ChartTitle = (cardConfig: RunsChartsLineCardConfig, useMetricD
   if (rightNames.length > 0) {
     const leftNames =
       shouldEnableChartExpressions() && cardConfig.yAxisKey === RunsChartsLineChartYAxisType.EXPRESSION
-        ? cardConfig.yAxisExpressions?.map((exp) => exp.expression) ?? []
+        ? (cardConfig.yAxisExpressions?.map((exp) => exp.expression) ?? [])
         : cardConfig.selectedMetricKeys?.length
           ? cardConfig.selectedMetricKeys
           : cardConfig.metricKey
@@ -232,7 +236,7 @@ export const RunsChartsLineChartCard = ({
     };
     const yAxisKeys = getYAxisKeys(config);
     const xAxisKeys = !selectedXAxisMetricKey ? [] : [selectedXAxisMetricKey];
-    const rightAxisKeys = config.showSecondYAxis ? config.selectedMetricKeysRight ?? [] : [];
+    const rightAxisKeys = config.showSecondYAxis ? (config.selectedMetricKeysRight ?? []) : [];
 
     return uniq(yAxisKeys.concat(xAxisKeys, rightAxisKeys));
   }, [config, selectedXAxisMetricKey, selectedMetricKeys]);
@@ -361,7 +365,7 @@ export const RunsChartsLineChartCard = ({
 
   const sampledData: RunsChartsRunData[] = useMemo(() => {
     // Right-axis metrics use their own ignore-outliers setting; everything else uses the left axis's.
-    const rightKeys = new Set(config.showSecondYAxis ? config.selectedMetricKeysRight ?? [] : []);
+    const rightKeys = new Set(config.showSecondYAxis ? (config.selectedMetricKeysRight ?? []) : []);
     return slicedRuns.map((run) => {
       const metricsHistory = metricKeys.reduce((acc: MetricHistoryByName, key) => {
         const history = resultsByRunUuid[run.uuid]?.[key]?.metricsHistory;

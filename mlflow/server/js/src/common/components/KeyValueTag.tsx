@@ -84,12 +84,7 @@ export const KeyValueTag = ({
               (valueIsLink ? (
                 <Typography.Text title={tag.value} css={getTruncatedStyles(shouldTruncateValue)}>
                   :{' '}
-                  <a
-                    href={tag.value}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <a href={tag.value} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
                     {tag.value}
                   </a>
                 </Typography.Text>

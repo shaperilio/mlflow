@@ -70,7 +70,7 @@ const RunsChartsConfigureLineChartPreviewImpl = ({
     };
     const yAxisKeys = getYAxisKeys(cardConfig);
     const xAxisKeys = !selectedXAxisMetricKey ? [] : [selectedXAxisMetricKey];
-    const rightAxisKeys = cardConfig.showSecondYAxis ? cardConfig.selectedMetricKeysRight ?? [] : [];
+    const rightAxisKeys = cardConfig.showSecondYAxis ? (cardConfig.selectedMetricKeysRight ?? []) : [];
     return uniq(yAxisKeys.concat(xAxisKeys, rightAxisKeys));
   }, [cardConfig, selectedXAxisMetricKey]);
 
@@ -84,7 +84,7 @@ const RunsChartsConfigureLineChartPreviewImpl = ({
 
   const sampledData = useMemo(() => {
     // Right-axis metrics use their own ignore-outliers setting; everything else uses the left axis's.
-    const rightKeys = new Set(cardConfig.showSecondYAxis ? cardConfig.selectedMetricKeysRight ?? [] : []);
+    const rightKeys = new Set(cardConfig.showSecondYAxis ? (cardConfig.selectedMetricKeysRight ?? []) : []);
     return previewData.map((run) => {
       const metricsHistory = metricKeysToFetch.reduce((acc: MetricHistoryByName, key) => {
         const history = resultsByRunUuid[run.uuid]?.[key]?.metricsHistory;
