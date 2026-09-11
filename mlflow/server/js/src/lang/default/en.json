@@ -1119,6 +1119,10 @@
     "defaultMessage": "We couldn't find any models matching your search criteria. Try changing your search filters.",
     "description": "Empty state message displayed when all models are filtered out in the logged models list page"
   },
+  "2ePP/n": {
+    "defaultMessage": "X-axis maximum",
+    "description": "Experiment page > global line chart settings > x-axis maximum input label"
+  },
   "2f2qeb": {
     "defaultMessage": "Type",
     "description": "Text for type column in schema table in model version page"
@@ -1278,6 +1282,10 @@
   "3GjJJV": {
     "defaultMessage": "Hidden from Connect tab. Click to show.",
     "description": "Tooltip for hidden connect option toggle"
+  },
+  "3I/FYn": {
+    "defaultMessage": "Type {brace} for suggestions, e.g. {tokens}",
+    "description": "Runs charts > line chart > legend label template available tokens hint"
   },
   "3JAJtl": {
     "defaultMessage": "Current password",
@@ -2615,6 +2623,10 @@
     "defaultMessage": "Set icons or override icons from server.json. Use 'light' or 'dark' for theme-specific icons, or 'any' for one that works in both.",
     "description": "Help text for icons in create MCP server modal"
   },
+  "8lEgwU": {
+    "defaultMessage": "Smart number formatting",
+    "description": "Smart number formatting settings title"
+  },
   "8mP5Mz": {
     "defaultMessage": "Enable Usage Tracking in the Overview tab to view logs",
     "description": "Tooltip shown on disabled Logs tab explaining that usage tracking must be enabled first"
@@ -2730,6 +2742,10 @@
   "9EibEs": {
     "defaultMessage": "Metadata:",
     "description": "MCP server version detail metadata label"
+  },
+  "9FMiSD": {
+    "defaultMessage": "Off",
+    "description": "Smart number formatting disabled label"
   },
   "9FaThs": {
     "defaultMessage": "No providers available",
@@ -3426,6 +3442,10 @@
   "Bnruyp": {
     "defaultMessage": "500",
     "description": "Label for 500 first runs visible in run count selector within runs compare configuration modal"
+  },
+  "BodiCP": {
+    "defaultMessage": "Ignore outliers",
+    "description": "Runs charts > line chart > second y-axis > ignore outliers > label"
   },
   "Boj6Fm": {
     "defaultMessage": "Version {version}",
@@ -5679,6 +5699,10 @@
     "defaultMessage": "Span type",
     "description": "Trace filter field: span type"
   },
+  "LMAv7r": {
+    "defaultMessage": "Only display data points between the p5 and p95 of the data. This can help with chart readability in cases where outliers significantly affect the Y-axis range",
+    "description": "A tooltip describing the 'Ignore Outliers' option for the second y-axis of line charts"
+  },
   "LOJumx": {
     "defaultMessage": "Prompt",
     "description": "Column label for linked prompts"
@@ -7035,6 +7059,14 @@
     "defaultMessage": "Register prompts",
     "description": "Home page quick action title for registering prompts"
   },
+  "QgWLQp": {
+    "defaultMessage": "Off",
+    "description": "Runs charts > line chart > second y-axis > ignore outliers > off setting label"
+  },
+  "Qgg06c": {
+    "defaultMessage": "Type {brace} for suggestions, e.g. {tokens}",
+    "description": "Experiment page > global line chart settings > legend label available tokens hint"
+  },
   "QhEnTA": {
     "defaultMessage": "Name",
     "description": "Header for the name column in the experiments table"
@@ -7915,6 +7947,10 @@
     "defaultMessage": "Guidelines should not be empty",
     "description": "Tooltip message when guidelines are empty"
   },
+  "UKOwRF": {
+    "defaultMessage": "Format metric and parameter values column-aware, with consistent decimal places and space-grouped digits.",
+    "description": "Smart number formatting settings description"
+  },
   "ULljUX": {
     "defaultMessage": "Filter: {filterString}",
     "description": "Filter display for scorer"
@@ -8531,6 +8567,10 @@
     "defaultMessage": "No schema. See <link>MLflow docs</link> for how to include input and output schema with your model.",
     "description": "Text for schema table when no schema exists in the model version\n                     page"
   },
+  "Wdvcon": {
+    "defaultMessage": "Legend label",
+    "description": "Experiment page > view controls > global settings for line chart view > legend label template section"
+  },
   "WeAgwI": {
     "defaultMessage": "Digest: {digest}",
     "description": "Experiment dataset drawer > digest > label and value"
@@ -8854,6 +8894,10 @@
   "XpksEQ": {
     "defaultMessage": "Icon URL",
     "description": "Column header for icon URL"
+  },
+  "Xr7JSA": {
+    "defaultMessage": "Select metrics",
+    "description": "Placeholder for the second-axis metric multi-selector when configuring a line chart"
   },
   "Xs1oJm": {
     "defaultMessage": "Search metric charts",
@@ -10999,6 +11043,10 @@
     "defaultMessage": "AI Gateway",
     "description": "Model dropdown group for AI Gateway endpoints"
   },
+  "g7nkT1": {
+    "defaultMessage": "Legend label template",
+    "description": "Experiment page > global line chart settings > legend label template input"
+  },
   "g7xNvF": {
     "defaultMessage": "Display points",
     "description": "Runs charts > line chart > display points > label"
@@ -11179,6 +11227,10 @@
     "defaultMessage": "Link copied to clipboard.",
     "description": "Review queue: toast after copying a shareable queue link"
   },
+  "gfMUoV": {
+    "defaultMessage": "Links",
+    "description": "Run page > Overview > Links section title"
+  },
   "ghgW69": {
     "defaultMessage": "Select traces",
     "description": "Button to open the trace selection modal from the run evaluation modal"
@@ -11354,6 +11406,10 @@
   "hFKR7V": {
     "defaultMessage": "Group traces by session",
     "description": "Accessible label for the group by session button in the V4 traces table toolbar"
+  },
+  "hFdEKg": {
+    "defaultMessage": "X-axis minimum",
+    "description": "Experiment page > global line chart settings > x-axis minimum input label"
   },
   "hHNj31": {
     "defaultMessage": "Cancel",
@@ -11734,6 +11790,10 @@
   "iWqITG": {
     "defaultMessage": "Assistant Not Available",
     "description": "Title shown when Assistant is not available for this client"
+  },
+  "iX3IUJ": {
+    "defaultMessage": "On",
+    "description": "Smart number formatting enabled label"
   },
   "iX9mZm": {
     "defaultMessage": "Saved {name} v{version} to the registry",
@@ -12374,6 +12434,10 @@
   "kwqwaU": {
     "defaultMessage": "View starter code",
     "description": "Title for coding agent starter code card on endpoint overview"
+  },
+  "ky2sa9": {
+    "defaultMessage": "X-axis range",
+    "description": "Experiment page > view controls > global settings for line chart view > manual x-axis range section label"
   },
   "kyC8/W": {
     "defaultMessage": "Debug the error in trace {traceId}.",
@@ -13479,6 +13543,10 @@
     "defaultMessage": "Show less",
     "description": "Label for a link that shows less tags when clicked"
   },
+  "pVmkXG": {
+    "defaultMessage": "On",
+    "description": "Runs charts > line chart > second y-axis > ignore outliers > on setting label"
+  },
   "pYUr49": {
     "defaultMessage": "What do you want the scorer to evaluate?",
     "description": "Hint for the scorer evaluation scope selection"
@@ -13842,6 +13910,10 @@
   "r/uvjS": {
     "defaultMessage": "Failed to delete question: {error}",
     "description": "Manage review questions: error toast shown when deleting a question fails"
+  },
+  "r048UY": {
+    "defaultMessage": "Max",
+    "description": "Experiment page > global line chart settings > x-axis maximum input placeholder"
   },
   "r0J+Jm": {
     "defaultMessage": "Selected guardrail model endpoint is unavailable. Please choose another endpoint.",
@@ -14310,6 +14382,10 @@
   "sm+YOj": {
     "defaultMessage": "Created at",
     "description": "Header for the dataset created-at column"
+  },
+  "smSqGl": {
+    "defaultMessage": "Min",
+    "description": "Experiment page > global line chart settings > x-axis minimum input placeholder"
   },
   "smtq2M": {
     "defaultMessage": "Automatically log traces for OpenAI API calls by calling the {code} function. For example:",
@@ -15986,6 +16062,10 @@
   "zmMR5p": {
     "defaultMessage": "An error occurred while rendering this component.",
     "description": "Description for default error message in prompts management UI"
+  },
+  "zn3wAP": {
+    "defaultMessage": "Disabled",
+    "description": "Runs charts > line chart > second y-axis > ignore outliers > disabled label"
   },
   "znEC5M": {
     "defaultMessage": "Adherence",
