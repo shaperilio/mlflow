@@ -1,19 +1,26 @@
 import { useState } from 'react';
 
+// Remembered for the page's lifetime: the sidebar unmounts the logo whenever it's collapsed, and
+// without this every re-expand would re-request a missing logo (a 404) and briefly jump in size.
+let customLogoUnavailable = false;
+
 /**
  * Sidebar logo. Renders a custom logo served at `/branding/logo.png` when one is configured for
  * the deployment (see `LOGO_FILE` in deploy/.env); otherwise falls back to the default MLflow
  * wordmark SVG below.
  */
 export const MlflowLogo = (props: React.SVGProps<SVGSVGElement>) => {
-  const [useDefault, setUseDefault] = useState(false);
+  const [useDefault, setUseDefault] = useState(customLogoUnavailable);
 
   if (!useDefault) {
     return (
       <img
         src="/branding/logo.png"
         alt="MLflow"
-        onError={() => setUseDefault(true)}
+        onError={() => {
+          customLogoUnavailable = true;
+          setUseDefault(true);
+        }}
         // Inline style so this wins over the height the sidebar passes via the css prop (which is
         // meant for the default SVG). The logo sits in the 190px left sidebar beside the collapse
         // button, so it is bounded to a box that fits there while keeping its aspect ratio.

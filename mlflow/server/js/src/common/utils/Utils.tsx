@@ -92,7 +92,9 @@ class Utils {
 
   static formatMetric(value: any) {
     if (value === 0) return '0';
-    if (value == null || !isFinite(value)) return String(value);
+    // A missing value (e.g. a run that didn't log this metric in the compare-runs table) shows blank.
+    if (value == null) return '';
+    if (!isFinite(value)) return String(value);
 
     const abs = Math.abs(value);
     const exponent = Math.floor(Math.log10(abs));

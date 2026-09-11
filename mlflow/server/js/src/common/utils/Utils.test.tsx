@@ -17,6 +17,9 @@ test('formatMetric', () => {
   // 4 significant figures anchored to the value's own magnitude, digits grouped in threes (with
   // spaces) on both sides of the decimal point; integers get no decimals.
   expect(Utils.formatMetric(0)).toEqual('0');
+  expect(Utils.formatMetric(undefined)).toEqual('');
+  expect(Utils.formatMetric(null)).toEqual('');
+  expect(Utils.formatMetric(NaN)).toEqual('NaN');
   expect(Utils.formatMetric(0.5)).toEqual('0.500 0');
   expect(Utils.formatMetric(0.001)).toEqual('0.001 000');
 
