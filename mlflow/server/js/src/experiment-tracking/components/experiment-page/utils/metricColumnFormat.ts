@@ -37,23 +37,12 @@ function formatNumber(abs: number, decimalPlaces: number): string {
   return groupIntegerDigits(intPart) + '.' + groupFractionalDigits(fracPart);
 }
 
+const SUPERSCRIPT_DIGITS = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+
 function toSuperscript(n: number): string {
-  const map: Record<string, string> = {
-    '0': '⁰',
-    '1': '¹',
-    '2': '²',
-    '3': '³',
-    '4': '⁴',
-    '5': '⁵',
-    '6': '⁶',
-    '7': '⁷',
-    '8': '⁸',
-    '9': '⁹',
-    '-': '⁻',
-  };
   return String(n)
     .split('')
-    .map((c) => map[c] ?? c)
+    .map((c) => (c === '-' ? '⁻' : (SUPERSCRIPT_DIGITS[Number(c)] ?? c)))
     .join('');
 }
 

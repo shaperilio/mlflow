@@ -8,17 +8,22 @@ const LINKS_PREFIX = 'links/';
  * opens in a new tab; for a "links/<label>" column the link text is the label (prefix stripped) rather
  * than the raw URL. Non-URL values fall back to the formatted/plain value.
  */
-// eslint-disable-next-line react-component-name/react-component-name -- TODO(FEINF-4716)
-export const ParamTagLinkCellRenderer = React.memo(
-  ({ value, valueFormatted, columnKey }: { value?: string; valueFormatted?: string; columnKey?: string }) => {
-    if (typeof value === 'string' && isHttpUrl(value)) {
-      const label = columnKey?.startsWith(LINKS_PREFIX) ? columnKey.slice(LINKS_PREFIX.length) : value;
-      return (
-        <a href={value} target="_blank" rel="noopener noreferrer">
-          {label}
-        </a>
-      );
-    }
-    return <>{valueFormatted ?? value ?? ''}</>;
-  },
-);
+export const ParamTagLinkCellRenderer = React.memo(function ParamTagLinkCellRenderer({
+  value,
+  valueFormatted,
+  columnKey,
+}: {
+  value?: string;
+  valueFormatted?: string;
+  columnKey?: string;
+}) {
+  if (typeof value === 'string' && isHttpUrl(value)) {
+    const label = columnKey?.startsWith(LINKS_PREFIX) ? columnKey.slice(LINKS_PREFIX.length) : value;
+    return (
+      <a href={value} target="_blank" rel="noopener noreferrer">
+        {label}
+      </a>
+    );
+  }
+  return <>{valueFormatted ?? value ?? ''}</>;
+});
