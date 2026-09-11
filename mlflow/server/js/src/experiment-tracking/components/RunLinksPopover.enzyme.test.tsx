@@ -13,6 +13,7 @@ import { shallow, mount } from 'enzyme';
 import { RunLinksPopover } from './RunLinksPopover';
 import Routes from '../routes';
 import { prefixRouteWithWorkspace } from '../../workspaces/utils/WorkspaceUtils';
+import Utils from '../../common/utils/Utils';
 
 describe('unit tests', () => {
   let wrapper;
@@ -73,8 +74,9 @@ describe('unit tests', () => {
       expect(link.getAttribute('href')).toBe(hrefExpected);
 
       const p = link.querySelector('p');
+      // The value goes through the metric formatter (the smart number format)
       // @ts-expect-error TS(2531): Object is possibly 'null'.
-      expect(p.textContent).toBe(`${name}, ${y}`);
+      expect(p.textContent).toBe(`${name}, ${Utils.formatMetric(y)}`);
       // @ts-expect-error TS(2531): Object is possibly 'null'.
       expect(p.style.color).toBe(color);
     });

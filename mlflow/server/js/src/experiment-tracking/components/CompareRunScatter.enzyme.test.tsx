@@ -142,10 +142,12 @@ describe('CompareRunScatter', () => {
     ).find(CompareRunScatter);
     const instance = wrapper.find(CompareRunScatterImpl).instance();
     expect(instance.state.disabled).toBe(false);
-    // getPlotlyTooltip
+    // getPlotlyTooltip (metric values use the smart number format: 4 significant figures)
     expect(instance.getPlotlyTooltip(0)).toEqual(
-      '<b>Run 9012</b><br>p1: v11<br>p2: v12<br>p3: v13<br><br>m1: 1.1<br>m3: 1.3<br>',
+      '<b>Run 9012</b><br>p1: v11<br>p2: v12<br>p3: v13<br><br>m1: 1.100<br>m3: 1.300<br>',
     );
-    expect(instance.getPlotlyTooltip(1)).toEqual('<b>Run 9013</b><br>p1: v21<br>p2: v22<br><br>m1: 2.1<br>m2: 2.2<br>');
+    expect(instance.getPlotlyTooltip(1)).toEqual(
+      '<b>Run 9013</b><br>p1: v21<br>p2: v22<br><br>m1: 2.100<br>m2: 2.200<br>',
+    );
   });
 });
