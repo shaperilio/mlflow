@@ -10,7 +10,7 @@ server {
     root /mlflow/mlflow/server/js/build;
     index index.html;
 
-    # Custom header logo (optional). Set LOGO_FILE in deploy/.env to a file placed in deploy/.
+    # Custom sidebar logo (optional). Set LOGO_FILE in deploy/.env to a file placed in deploy/.
     # When unset/missing this 404s and the frontend falls back to the default MLflow logo.
     location = /branding/logo.png {
         alias /mlflow/deploy/${LOGO_FILE};

@@ -22,12 +22,13 @@ RUN apt-get update && apt-get install -y \
     gettext-base \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node via nvm (lets us match whatever version the repo needs)
+# Install Node via nvm, pinned to the major the frontend requires (package.json "engines":
+# node ^24.14.0). Bump this when the repo's requirement moves.
 ENV NVM_DIR="/root/.nvm"
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash \
     && . "$NVM_DIR/nvm.sh" \
-    && nvm install --lts \
-    && nvm use --lts \
+    && nvm install 24 \
+    && nvm use 24 \
     && npm install -g yarn
 
 # Make node/npm/yarn available in non-login shells (e.g. the entrypoint)

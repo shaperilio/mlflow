@@ -15,12 +15,14 @@ cd "$(dirname "$0")"
 source ./_lib.sh
 DEPLOY_DIR="$(pwd)"
 REPO_DIR="$(cd .. && pwd)"
-BRANCH="${DEPLOY_BRANCH:-3.9.0-custom}"
+BRANCH="${DEPLOY_BRANCH:-master}"
 REMOTE="${DEPLOY_REMOTE:-origin}"
 
 cd "$REPO_DIR"
 echo "==> Fetching ${REMOTE}/${BRANCH}..."
-git fetch --prune "$REMOTE"
+# Fetch the branch by explicit refspec: a `git clone --single-branch` checkout only fetches the
+# branch it was cloned with, so a plain fetch would never see a different DEPLOY_BRANCH.
+git fetch --prune "$REMOTE" "+refs/heads/${BRANCH}:refs/remotes/${REMOTE}/${BRANCH}"
 
 # Ensure we're on the branch (create a tracking branch the first time), then
 # hard-reset to the remote tip. Any local edits to tracked files are discarded.

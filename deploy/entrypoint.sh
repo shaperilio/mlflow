@@ -13,7 +13,7 @@ JS_DIR="/mlflow/mlflow/server/js"
 
 : "${BACKEND_URL:?BACKEND_URL is required (set it in deploy/.env)}"
 : "${PORT:=42069}"
-# Optional custom header logo (a file in deploy/). When unset, point the alias at a file that
+# Optional custom sidebar logo (a file in deploy/). When unset, point the alias at a file that
 # does not exist so the /branding/logo.png request 404s and the frontend uses the default logo.
 : "${LOGO_FILE:=}"
 LOGO_FILE="${LOGO_FILE:-.no-logo}"

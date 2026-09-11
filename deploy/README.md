@@ -32,7 +32,7 @@ browser ──▶ nginx (this container, port $PORT) ──▶ your MLflow backe
 On your server:
 ```bash
 # 0. Get the code (first time only)
-git clone -b 3.9.0-custom --single-branch https://github.com/shaperilio/mlflow.git
+git clone -b master --single-branch https://github.com/shaperilio/mlflow.git
 cd mlflow
 cd deploy
 
@@ -86,8 +86,8 @@ sudo systemctl disable mlflow-frontend
 
 ## Updating to the latest code
 
-Development happens elsewhere and is pushed to the `3.9.0-custom` branch on the
-fork. On the deployment host, just pull and relaunch:
+Development happens elsewhere and is pushed to the `master` branch on the fork.
+On the deployment host, just pull and relaunch:
 
 ```bash
 cd deploy
@@ -100,13 +100,25 @@ restarts the container (via systemd if installed, otherwise Compose). Like
 `start.sh`, it waits for the rebuilt frontend to come up and prints the URL once
 it's serving (and shows the logs if the build fails).
 
+To deploy a different branch, set `DEPLOY_BRANCH` (and `DEPLOY_REMOTE` if it's
+not `origin`):
+
+```bash
+DEPLOY_BRANCH=some-branch ./pull-latest.sh
+```
+
+The script fetches that branch by name, so this works even on a
+`--single-branch` clone of another branch (a plain `git fetch` there only ever
+fetches the branch it was cloned with). That's also how a checkout of the old
+`3.9.0-custom` branch moves over to `master`: just run `./pull-latest.sh`.
+
 ## Custom logo
 
-Replace the MLflow wordmark in the header with your own logo:
+Replace the MLflow wordmark in the sidebar with your own logo:
 
 1. Put the image file in this `deploy/` directory (PNG with a transparent
-   background works best; it's scaled to the header height, so a wide/horizontal
-   logo looks best).
+   background works best; it's scaled to fit the top of the left sidebar — at
+   most 140×48 px — keeping its aspect ratio).
 2. Set `LOGO_FILE` in `.env` to its filename, e.g. `LOGO_FILE=custom_logo.png`.
 3. Restart so the change is picked up:
 
@@ -114,7 +126,7 @@ Replace the MLflow wordmark in the header with your own logo:
    docker compose up -d --force-recreate   # or: sudo systemctl restart mlflow-frontend
    ```
 
-nginx then serves it at `/branding/logo.png` and the header uses it. Leave
+nginx then serves it at `/branding/logo.png` and the sidebar uses it. Leave
 `LOGO_FILE` empty (or remove the file) to fall back to the default MLflow logo.
 No rebuild is needed — swapping the logo is just a file change plus a restart.
 
@@ -123,6 +135,11 @@ No rebuild is needed — swapping the logo is just a file change plus a restart.
 - Linux host with **Docker Engine + Compose** (use `install-docker.sh` on Ubuntu).
 - At least **8 GB RAM** available for the one-time frontend build.
 - Network reachability from the host to your `BACKEND_URL`.
+- A backend that's as new as this frontend. The UI is built from the fork's
+  `master` (tracking upstream MLflow's development branch) and calls APIs that
+  older releases don't have, so run a backend from the same checkout or a recent
+  enough MLflow release. An older backend (e.g. 3.9.0) will leave parts of the
+  UI broken.
 
 ## Notes
 
