@@ -94,8 +94,8 @@ cd deploy
 ./pull-latest.sh
 ```
 
-This fetches the branch tip, **hard-resets** the checkout to it (discarding any
-local changes — nothing is developed on the server), clears the old build, and
+This fetches the branch tip, **force-checks it out** (discarding any local
+changes — nothing is developed on the server), clears the old build, and
 restarts the container (via systemd if installed, otherwise Compose). Like
 `start.sh`, it waits for the rebuilt frontend to come up and prints the URL once
 it's serving (and shows the logs if the build fails).
@@ -109,8 +109,24 @@ DEPLOY_BRANCH=some-branch ./pull-latest.sh
 
 The script fetches that branch by name, so this works even on a
 `--single-branch` clone of another branch (a plain `git fetch` there only ever
-fetches the branch it was cloned with). That's also how a checkout of the old
-`3.9.0-custom` branch moves over to `master`: just run `./pull-latest.sh`.
+fetches the branch it was cloned with).
+
+### Moving an existing `3.9.0-custom` deployment to `master` (one time)
+
+A checkout of the old `3.9.0-custom` branch still has that branch's
+`pull-latest.sh`, which only ever deploys `3.9.0-custom`. Switch it over by hand
+once, from the repo root (this discards local changes, like the script does):
+
+```bash
+git fetch origin +refs/heads/master:refs/remotes/origin/master
+git checkout -f -B master origin/master
+cd deploy
+./pull-latest.sh
+```
+
+From then on, `./pull-latest.sh` alone keeps it up to date. The first run
+rebuilds the image (the frontend now needs Node 24) and reinstalls the JS
+dependencies, so it takes a while.
 
 ## Custom logo
 
