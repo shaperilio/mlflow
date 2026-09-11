@@ -28,6 +28,8 @@ interface PinnedScanlineData {
 // Plotly-specific selectors for finding particular elements of interest in the plot DOM structure
 const PLOTLY_SVG_SELECTOR = '.main-svg';
 const PLOTLY_DRAGLAYER_SELECTOR = '.main-svg .draglayer .nsewdrag';
+// Plotly's default config.doubleClickDelay: two clicks within this many ms make a double-click.
+const PLOTLY_DOUBLE_CLICK_DELAY_MS = 300;
 
 // Interval for throttling the tooltip data update handler
 const TOOLTIP_DATA_UPDATE_INTERVAL = 50;
@@ -429,9 +431,18 @@ export const useRunsMultipleTracesTooltipData = ({
     // A click on a curve keeps its existing highlight behavior, so we ignore those. Listening on the
     // document (capture) because plotly appends a drag cover on mousedown that swallows the plot's own
     // click; a real (non-drag) click still produces a document-level click event.
+    // The pin is added after Plotly's double-click window, so a double-click (zoom reset) adds none.
+    let pendingPinTimer: number | undefined;
     const pinClickHandler = (e: MouseEvent) => {
-      // Ignore clicks that land on an existing pinned box (its × button / dragging it).
-      if (e.target instanceof Element && e.target.closest('[data-pinned-scanline-box]')) {
+      // Only clicks on this plot's own drag layer count. Plotly re-dispatches a plain click on it, so
+      // this rejects clicks on anything drawn over the plot area: the modebar, the run context menu
+      // (hide/pin run), pinned boxes, modals and other charts' overlays.
+      if (!(e.target instanceof Node) || !dragLayer?.contains(e.target)) {
+        return;
+      }
+      if (e.detail > 1) {
+        window.clearTimeout(pendingPinTimer);
+        pendingPinTimer = undefined;
         return;
       }
       // Ignore clicks while hovering a specific curve (that's the highlight action).
@@ -460,16 +471,20 @@ export const useRunsMultipleTracesTooltipData = ({
         tooltipLegendItems: [...data.tooltipLegendItems],
       };
       const scanlineLeft = getPixelLeftForXValue(xValue);
-      setPins((prev) => [
-        ...prev,
-        {
-          id: uniqueId('pinned-scanline-'),
-          xValue,
-          snapshot,
-          boxLeft: scanlineLeft + 8,
-          boxTop: 8,
-        },
-      ]);
+      window.clearTimeout(pendingPinTimer);
+      pendingPinTimer = window.setTimeout(() => {
+        pendingPinTimer = undefined;
+        setPins((prev) => [
+          ...prev,
+          {
+            id: uniqueId('pinned-scanline-'),
+            xValue,
+            snapshot,
+            boxLeft: scanlineLeft + 8,
+            boxTop: 8,
+          },
+        ]);
+      }, PLOTLY_DOUBLE_CLICK_DELAY_MS);
     };
 
     if (dragLayer) {
@@ -487,6 +502,7 @@ export const useRunsMultipleTracesTooltipData = ({
         dragLayer.removeEventListener('pointerleave', pointerLeavePlotCallback);
         window.removeEventListener('resize', windowResizeHandler);
         document.removeEventListener('click', pinClickHandler, { capture: true });
+        window.clearTimeout(pendingPinTimer);
       };
     }
 
@@ -506,30 +522,31 @@ export const useRunsMultipleTracesTooltipData = ({
     updateContainerPosition,
   ]);
 
-  // Drag a pinned box around by its body; the box position is stored in container pixels.
-  const startBoxDrag = useCallback((e: ReactPointerEvent, pinId: string) => {
+  // Drag a pinned box around by its body; the box position is stored in container pixels. While
+  // dragging, the box is moved directly in the DOM and the position is committed to state once on
+  // release: a state update per move would re-render the whole plot (and re-run Plotly) every time.
+  const startBoxDrag = useCallback((e: ReactPointerEvent<HTMLElement>, pinId: string) => {
     e.preventDefault();
+    const box = e.currentTarget;
     const startX = e.clientX;
     const startY = e.clientY;
     const pin = pinsRef.current.find((entry) => entry.id === pinId);
     const originLeft = pin?.boxLeft ?? 0;
     const originTop = pin?.boxTop ?? 0;
+    let boxLeft = originLeft;
+    let boxTop = originTop;
     const onMove = (moveEvent: PointerEvent) => {
-      setPins((prev) =>
-        prev.map((entry) =>
-          entry.id === pinId
-            ? {
-                ...entry,
-                boxLeft: originLeft + (moveEvent.clientX - startX),
-                boxTop: originTop + (moveEvent.clientY - startY),
-              }
-            : entry,
-        ),
-      );
+      boxLeft = originLeft + (moveEvent.clientX - startX);
+      boxTop = originTop + (moveEvent.clientY - startY);
+      box.style.left = `${boxLeft}px`;
+      box.style.top = `${boxTop}px`;
     };
     const onUp = () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
+      if (boxLeft !== originLeft || boxTop !== originTop) {
+        setPins((prev) => prev.map((entry) => (entry.id === pinId ? { ...entry, boxLeft, boxTop } : entry)));
+      }
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
