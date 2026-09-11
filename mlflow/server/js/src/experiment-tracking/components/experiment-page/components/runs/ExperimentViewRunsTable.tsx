@@ -6,6 +6,7 @@ import type {
   GridApi,
   GridReadyEvent,
   PostSortRowsParams,
+  SortChangedEvent,
 } from '@ag-grid-community/core';
 import type { Theme } from '@emotion/react';
 import { type CSSObject, Interpolation } from '@emotion/react';
@@ -359,7 +360,11 @@ export const ExperimentViewRunsTable = React.memo(
       // `allColumns` populates one tick after grid-ready; depending on it ensures
       // the persisted order is applied once colIds are known. It stays stable
       // across user drags, so this won't re-run and fight an in-progress gesture.
-    }, [columnApi, columnDefs, isComparingRuns, allColumns]);
+      // Not keyed on `columnDefs` identity: that is rebuilt on every data update (per-column number
+      // formats come from the rows), which would re-apply a stale layout over a column the user
+      // just moved or resized. `allColumns` already changes whenever the column set does, and
+      // `maintainColumnOrder` keeps the order across columnDefs updates.
+    }, [columnApi, isComparingRuns, allColumns]);
 
     const gridSizeHandler = useCallback(
       (api: GridApi) => {
@@ -438,6 +443,27 @@ export const ExperimentViewRunsTable = React.memo(
         loadMoreRunsFunc();
       }
     }, [clientSort, moreRunsAvailable, isLoading, loadMoreRunsFunc]);
+
+    // Drop the client sort whenever the sort changes from outside the column headers, so it can't
+    // override the new order: a server sort picked elsewhere (the sort selector, a saved/shared view),
+    // or the grid losing the sort (e.g. the column selector's "Reset to defaults" resets column state).
+    useEffect(() => {
+      setClientSort(null);
+    }, [orderByKey, orderByAsc]);
+    const clientSortRef = useRef(clientSort);
+    clientSortRef.current = clientSort;
+    const handleSortChanged = useCallback((event: SortChangedEvent) => {
+      const current = clientSortRef.current;
+      if (!current || !event.columnApi) {
+        return;
+      }
+      const stillSorted = event.columnApi
+        .getColumnState()
+        .some((column) => column.colId === current.colId && Boolean(column.sort));
+      if (!stillSorted) {
+        setClientSort(null);
+      }
+    }, []);
 
     // Keep pinned runs at the top regardless of the (client-side) sort order. Runs after every
     // sort; a no-op for the server-ordered view where pinned rows already lead.
@@ -593,6 +619,7 @@ export const ExperimentViewRunsTable = React.memo(
                 onGridReady={gridReadyHandler}
                 onColumnMoved={handleColumnMoved}
                 postSortRows={postSortRows}
+                onSortChanged={handleSortChanged}
                 onColumnResized={handleColumnResized}
                 onSelectionChanged={onSelectionChange}
                 getRowHeight={rowHeightGetterFn}
