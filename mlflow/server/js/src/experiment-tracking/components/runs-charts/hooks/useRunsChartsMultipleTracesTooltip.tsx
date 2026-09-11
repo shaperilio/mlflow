@@ -433,6 +433,7 @@ export const useRunsMultipleTracesTooltipData = ({
     // click; a real (non-drag) click still produces a document-level click event.
     // The pin is added after Plotly's double-click window, so a double-click (zoom reset) adds none.
     let pendingPinTimer: number | undefined;
+    let lastClickTime = -Infinity;
     const pinClickHandler = (e: MouseEvent) => {
       // Only clicks on this plot's own drag layer count. Plotly re-dispatches a plain click on it, so
       // this rejects clicks on anything drawn over the plot area: the modebar, the run context menu
@@ -440,7 +441,12 @@ export const useRunsMultipleTracesTooltipData = ({
       if (!(e.target instanceof Node) || !dragLayer?.contains(e.target)) {
         return;
       }
-      if (e.detail > 1) {
+      // Like Plotly, treat a click soon after the previous one as a double-click (`detail` isn't
+      // always 2 then): cancel the first click's pending pin and don't pin.
+      const now = performance.now();
+      const isDoubleClick = e.detail > 1 || now - lastClickTime < PLOTLY_DOUBLE_CLICK_DELAY_MS;
+      lastClickTime = isDoubleClick ? -Infinity : now;
+      if (isDoubleClick) {
         window.clearTimeout(pendingPinTimer);
         pendingPinTimer = undefined;
         return;
