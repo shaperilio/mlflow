@@ -8,12 +8,14 @@ on:
 concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: false
+  queue: max
 
 defaults:
   run:
     shell: bash
 
 permissions: {}
+cache-mode: none
 
 jobs:
   review:

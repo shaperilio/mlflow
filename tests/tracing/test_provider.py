@@ -1,6 +1,8 @@
 import random
+import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -840,6 +842,7 @@ def test_otel_resource_attributes(monkeypatch):
         attributes.pop("service.instance.id", None)
         return attributes
 
+    default_service_name = f"unknown_service:{Path(sys.executable).name}"
     tracer = _get_tracer("test")
     # By default, only MLflow's SDK attributes are set on an empty resource
     assert resource_attributes(tracer) == {
@@ -859,7 +862,7 @@ def test_otel_resource_attributes(monkeypatch):
         "telemetry.sdk.language": "python",
         "telemetry.sdk.name": "mlflow",
         "telemetry.sdk.version": mlflow.__version__,
-        "service.name": "unknown_service",
+        "service.name": default_service_name,
     }
 
     # Service name should be propagated from the env var
@@ -880,7 +883,7 @@ def test_otel_resource_attributes(monkeypatch):
     monkeypatch.delenv("OTEL_SERVICE_NAME", raising=False)
     tracer = _get_tracer("test")
     assert resource_attributes(tracer) == {
-        "service.name": "unknown_service",
+        "service.name": default_service_name,
         "telemetry.sdk.language": "python",
         "telemetry.sdk.name": "mlflow",
         "telemetry.sdk.version": mlflow.__version__,
@@ -1128,18 +1131,18 @@ def _serving_uc_experiment():
 
 
 def test_resolve_uc_location_in_serving_uses_databricks_store(
-    mock_databricks_serving_with_tracing_env,
+    mock_databricks_serving_with_tracing_env, monkeypatch
 ):
     from mlflow.tracing.provider import _resolve_experiment_uc_location
 
     mlflow.tracing.reset()
+    monkeypatch.setenv("MLFLOW_EXPERIMENT_ID", "123")
 
     with (
         mock.patch(
             "mlflow.tracing.provider.mlflow.get_tracking_uri",
             return_value="sqlite:///mlflow.db",
         ),
-        mock.patch("mlflow.tracking.fluent._get_experiment_id", return_value="123"),
         mock.patch("mlflow.tracking._tracking_service.utils._get_store") as mock_store_fn,
     ):
         mock_store_fn.return_value.get_experiment.return_value = _serving_uc_experiment()
@@ -1148,21 +1151,53 @@ def test_resolve_uc_location_in_serving_uses_databricks_store(
 
         assert result == UnityCatalog("cat", "sch", table_prefix="pfx")
         mock_store_fn.assert_called_once_with("databricks")
+        mock_store_fn.return_value.get_experiment.assert_called_once_with("123")
 
     mlflow.tracing.reset()
 
 
-def test_serving_uc_bound_experiment_selects_uc_processor(
-    mock_databricks_serving_with_tracing_env,
+def test_resolve_uc_location_in_serving_bypasses_local_experiment_validation(
+    mock_databricks_serving_with_tracing_env, monkeypatch
 ):
+    # `_get_experiment_id()` raises in serving (local store); resolution falls back to the env var.
+    from mlflow.tracing.provider import _resolve_experiment_uc_location
+
     mlflow.tracing.reset()
+    monkeypatch.setenv("MLFLOW_EXPERIMENT_ID", "123")
 
     with (
         mock.patch(
             "mlflow.tracing.provider.mlflow.get_tracking_uri",
             return_value="sqlite:///mlflow.db",
         ),
-        mock.patch("mlflow.tracking.fluent._get_experiment_id", return_value="123"),
+        mock.patch(
+            "mlflow.tracking.fluent._get_experiment_id",
+            side_effect=MlflowException("does not exist in the tracking server"),
+        ) as mock_get_experiment_id,
+        mock.patch("mlflow.tracking._tracking_service.utils._get_store") as mock_store_fn,
+    ):
+        mock_store_fn.return_value.get_experiment.return_value = _serving_uc_experiment()
+
+        result = _resolve_experiment_uc_location()
+
+        assert result == UnityCatalog("cat", "sch", table_prefix="pfx")
+        mock_get_experiment_id.assert_not_called()
+        mock_store_fn.return_value.get_experiment.assert_called_once_with("123")
+
+    mlflow.tracing.reset()
+
+
+def test_serving_uc_bound_experiment_selects_uc_processor(
+    mock_databricks_serving_with_tracing_env, monkeypatch
+):
+    mlflow.tracing.reset()
+    monkeypatch.setenv("MLFLOW_EXPERIMENT_ID", "123")
+
+    with (
+        mock.patch(
+            "mlflow.tracing.provider.mlflow.get_tracking_uri",
+            return_value="sqlite:///mlflow.db",
+        ),
         mock.patch("mlflow.tracking._tracking_service.utils._get_store") as mock_store_fn,
     ):
         mock_store_fn.return_value.get_experiment.return_value = _serving_uc_experiment()
@@ -1180,17 +1215,17 @@ def test_serving_uc_bound_experiment_selects_uc_processor(
 
 @pytest.mark.parametrize("tracking_uri", ["databricks", "databricks://myprofile"])
 def test_serving_keeps_explicit_databricks_tracking_uri(
-    mock_databricks_serving_with_tracing_env, tracking_uri
+    mock_databricks_serving_with_tracing_env, tracking_uri, monkeypatch
 ):
     # Substituting "databricks" in serving must not discard a configured profile.
     mlflow.tracing.reset()
+    monkeypatch.setenv("MLFLOW_EXPERIMENT_ID", "123")
 
     with (
         mock.patch(
             "mlflow.tracing.provider.mlflow.get_tracking_uri",
             return_value=tracking_uri,
         ),
-        mock.patch("mlflow.tracking.fluent._get_experiment_id", return_value="123"),
         mock.patch("mlflow.tracking._tracking_service.utils._get_store") as mock_store_fn,
     ):
         mock_store_fn.return_value.get_experiment.return_value = _serving_uc_experiment()
@@ -1205,16 +1240,16 @@ def test_serving_keeps_explicit_databricks_tracking_uri(
 
 
 def test_serving_non_uc_experiment_retains_inference_table(
-    mock_databricks_serving_with_tracing_env,
+    mock_databricks_serving_with_tracing_env, monkeypatch
 ):
     mlflow.tracing.reset()
+    monkeypatch.setenv("MLFLOW_EXPERIMENT_ID", "123")
 
     with (
         mock.patch(
             "mlflow.tracing.provider.mlflow.get_tracking_uri",
             return_value="sqlite:///mlflow.db",
         ),
-        mock.patch("mlflow.tracking.fluent._get_experiment_id", return_value="123"),
         mock.patch("mlflow.tracking._tracking_service.utils._get_store") as mock_store_fn,
     ):
         mock_store_fn.return_value.get_experiment.return_value = _experiment(tags={})

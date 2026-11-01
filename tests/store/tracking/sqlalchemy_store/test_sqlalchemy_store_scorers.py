@@ -543,7 +543,7 @@ def test_list_scorers_across_experiments(store: SqlAlchemyStore, monkeypatch):
 
     # Force a tiny chunk size to exercise the IN-list chunking loop end-to-end.
     # Ordering must remain globally deterministic across chunks.
-    monkeypatch.setattr(SqlAlchemyStore, "_LIST_SCORERS_CHUNK_SIZE", 1)
+    monkeypatch.setattr(SqlAlchemyStore, "_ID_CHUNK_SIZE", 1)
     chunked = store.list_scorers_across_experiments([exp_a, exp_b, exp_c])
     assert [(s.experiment_id, s.scorer_name, s.scorer_version) for s in chunked] == expected
 
@@ -577,8 +577,9 @@ def test_scorer_experiment_ids_are_coerced_to_int(store: SqlAlchemyStore):
     store.delete_scorer(exp_id, "coerced", version=1)
     assert [v.scorer_version for v in store.list_scorer_versions(exp_id, "coerced")] == [2]
 
-    with pytest.raises(MlflowException, match="must be valid integers"):
-        store.list_scorers_across_experiments(["not-a-number"])
+    for bad_experiment_id in ["not-a-number", ""]:
+        with pytest.raises(MlflowException, match="Experiment ID must be a valid integer"):
+            store.list_scorers_across_experiments([bad_experiment_id])
 
 
 @pytest.mark.parametrize(

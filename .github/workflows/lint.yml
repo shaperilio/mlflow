@@ -23,13 +23,14 @@ env:
   PIP_CONSTRAINT: ${{ github.workspace }}/requirements/constraints.txt
 
 permissions: {}
+cache-mode: none
 
 jobs:
   lint:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-24.04, macos-latest]
         run-macos:
           - ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
         exclude:
@@ -40,7 +41,8 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
-    name: ${{ matrix.os == 'ubuntu-latest' && 'lint' || 'lint-macos' }}
+    cache-mode: write
+    name: ${{ matrix.os == 'ubuntu-24.04' && 'lint' || 'lint-macos' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -80,7 +82,7 @@ jobs:
               key: pre-commit-${{ matrix.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
               restore-keys: pre-commit-${{ matrix.os }}-
       - name: Add problem matchers
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-24.04'
         run: |
           for f in .github/workflows/matchers/*.json; do
             echo "::add-matcher::$f"
@@ -100,25 +102,17 @@ jobs:
         run: |
           uv run --no-sync pre-commit run --all-files
 
-      - name: Test clint
+      - name: Run tests
         run: |
-          uv run --no-sync pytest dev/clint
-
-      - name: Test pypi
-        run: |
-          uv run --no-sync pytest dev/pypi
-
-      - name: Test skills
-        run: |
-          uv run --no-sync pytest .claude/skills
+          uv run --no-sync pytest dev/clint dev/pypi .claude/skills
 
       - name: Check function signatures
-        if: matrix.os == 'ubuntu-latest' && github.event_name == 'pull_request'
+        if: matrix.os == 'ubuntu-24.04' && github.event_name == 'pull_request'
         run: |
           uv run --no-project dev/check_function_signatures.py --base-revision HEAD^1
 
       - name: Check whitespace-only changes
-        if: matrix.os == 'ubuntu-latest' && github.event_name == 'pull_request'
+        if: matrix.os == 'ubuntu-24.04' && github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -126,22 +120,15 @@ jobs:
         run: |
           uv run --no-project dev/check_whitespace_only.py \
             --repo $REPO \
-            --pr $PR_NUMBER
+            --pr $PR_NUMBER \
+            --base-revision HEAD^1
 
       - name: Check uv.lock changes
-        if: matrix.os == 'ubuntu-latest' && github.event_name == 'pull_request'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+        if: matrix.os == 'ubuntu-24.04' && github.event_name == 'pull_request'
         run: |
-          files=$(gh pr view "${PR_NUMBER}" --repo "${REPO}" --json files --jq '.files[].path')
+          files=$(git diff --name-only HEAD^1 HEAD)
           if echo "$files" | grep -q '^uv.lock$' && echo "$files" | grep -q '^pyproject.toml$'; then
             echo '::warning file=pyproject.toml,line=1,col=1::[Non-blocking]' \
                  'Run `uv lock --upgrade-package <package>` if this PR should update package versions.' \
                  '`uv lock` alone won'"'"'t bump them.'
           fi
-
-      - name: Check unused media
-        run: |
-          dev/find-unused-media.sh

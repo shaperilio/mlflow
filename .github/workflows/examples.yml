@@ -6,10 +6,14 @@ on:
       - "docs/**"
       - "**.md"
       - "dev/clint/**"
+      - ".github/workflows/copilot-*.yml"
       - ".github/workflows/docs.yml"
       - ".github/workflows/preview-docs.yml"
+      - ".github/workflows/triage.yml"
       - "mlflow/server/js/**"
       - ".github/workflows/js.yml"
+      - "libs/typescript/**"
+      - ".github/workflows/typescript.yml"
       - ".claude/**"
   schedule:
     # Run this action daily at 13:00 UTC
@@ -46,10 +50,11 @@ env:
   PYTHONFAULTHANDLER: "1"
 
 permissions: {}
+cache-mode: none
 
 jobs:
   examples:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     permissions:
       contents: read
@@ -116,7 +121,7 @@ jobs:
           df -h
 
   docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     permissions:
       contents: read

@@ -49,10 +49,11 @@ env:
   PYTHONUTF8: "1"
 
 permissions: {}
+cache-mode: none
 
 jobs:
   docker-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     permissions:
       contents: read
@@ -95,6 +96,7 @@ jobs:
     timeout-minutes: 120
     permissions:
       contents: read
+    cache-mode: write
     strategy:
       fail-fast: false
       matrix:

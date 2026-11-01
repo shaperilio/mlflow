@@ -28,10 +28,11 @@ defaults:
     shell: bash
 
 permissions: {}
+cache-mode: none
 
 jobs:
   skinny:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -59,10 +60,11 @@ jobs:
           ./dev/run-python-skinny-tests.sh
 
   core:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     permissions:
       contents: read
+    cache-mode: read
     if: (github.event_name == 'schedule' && github.repository == 'mlflow/dev') || github.event_name == 'pull_request'
     strategy:
       fail-fast: false
