@@ -156,10 +156,9 @@ No rebuild is needed — swapping the logo is just a file change plus a restart.
 - At least **8 GB RAM** available for the one-time frontend build.
 - Network reachability from the host to your `BACKEND_URL`.
 - A backend that's as new as this frontend. The UI is built from the fork's
-  `master` (tracking upstream MLflow's development branch) and calls APIs that
-  older releases don't have, so run a backend from the same checkout or a recent
-  enough MLflow release. An older backend (e.g. 3.9.0) will leave parts of the
-  UI broken.
+  `master` (based on the 3.17.2 release) and calls APIs that older releases
+  don't have, so run a backend from the same checkout or MLflow 3.17.2 or newer.
+  An older backend (e.g. 3.9.0) will leave parts of the UI broken.
 
 ## Notes
 

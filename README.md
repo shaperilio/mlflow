@@ -1,6 +1,6 @@
 # Custom fork
 
-Customizations atop upstream MLflow's `master` branch (they started out on the `3.9.0-custom`
+Customizations atop the upstream MLflow 3.17.2 release (they started out on the `3.9.0-custom`
 branch, atop the 3.9.0 release).
 
 ### General
