@@ -44,8 +44,9 @@ branch, atop the 3.9.0 release).
 
 ### Deployment
 
-- [deploy](deploy/) directory to serve this frontend against an already-running backend; you can go
-  hog-wild on GUI experiments while keeping a completely functional server running elsewhere.
+- [deploy](deploy/) directory to serve this frontend, either with a local backend that stores its
+  data in a folder you choose, or against an already-running backend; you can go hog-wild on GUI
+  experiments while keeping a completely functional server running elsewhere.
 
 # MLflow
 

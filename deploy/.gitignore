@@ -1,2 +1,4 @@
 # Local configuration -- contains the backend URL; never commit it.
 .env
+# Default DATA_DIR for the local backend.
+data/

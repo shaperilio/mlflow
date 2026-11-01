@@ -16,13 +16,16 @@ server {
         alias /mlflow/deploy/${LOGO_FILE};
     }
 
-    # Proxy all MLflow API / AJAX / GraphQL / artifact traffic to the backend.
-    location ~ ^/(ajax-api|api|graphql|get-artifact|model-versions|gateway)(/|$) {
+    # Proxy all MLflow API / AJAX / GraphQL / artifact / trace traffic to the backend.
+    location ~ ^/(ajax-api|api|graphql|get-artifact|model-versions|gateway|health|version|v1)(/|$) {
         proxy_pass ${BACKEND_URL};
         proxy_set_header Host $proxy_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_read_timeout 300;
+        # Clients upload artifacts through here; nginx rejects bodies over 1 MB by default.
+        client_max_body_size 0;
+        proxy_request_buffering off;
     }
 
     # The production build is compiled to be hosted under the /static-files/ path.

@@ -34,6 +34,8 @@ cd "$JS_DIR"
 if [ ! -d node_modules ] || [ yarn.lock -nt node_modules ]; then
   echo "==> Installing JS dependencies (yarn install)... this takes a few minutes"
   yarn install
+  # The install can rewrite yarn.lock; don't let that trigger another one on the next start.
+  touch node_modules
 fi
 
 # 2. Build the frontend if there's no build yet.

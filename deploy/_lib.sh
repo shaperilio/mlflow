@@ -2,6 +2,10 @@
 # Sourced by start.sh and pull-latest.sh; not executed directly.
 
 CONTAINER_NAME="mlflow-frontend"
+BACKEND_CONTAINER_NAME="mlflow-backend"
+
+# On Windows, stop Git Bash from rewriting container paths like /mlflow into host paths.
+export MSYS_NO_PATHCONV=1
 
 # Resolve the compose command into the COMPOSE_CMD array.
 # Returns non-zero if neither the plugin nor the legacy binary is available.
@@ -17,11 +21,28 @@ resolve_compose() {
   fi
 }
 
+# Print a setting from .env, or a default if it's unset. Run from the deploy/ directory.
+# Usage: read_env <name> <default>
+read_env() {
+  local v
+  v="$(grep -E "^$1=" .env 2>/dev/null | head -1 | cut -d= -f2- | tr -d '[:space:]')"
+  printf '%s' "${v:-$2}"
+}
+
 # Print the PORT from .env (default 42069). Run from the deploy/ directory.
 read_port() {
-  local p
-  p="$(grep -E '^PORT=' .env 2>/dev/null | head -1 | cut -d= -f2- | tr -d '[:space:]')"
-  printf '%s' "${p:-42069}"
+  read_env PORT 42069
+}
+
+# Print the host to open the UI at, given BIND_ADDRESS. Run from the deploy/ directory.
+read_url_host() {
+  local bind
+  bind="$(read_env BIND_ADDRESS 127.0.0.1)"
+  case "$bind" in
+    127.0.0.1) printf 'localhost' ;;
+    0.0.0.0) hostname ;;
+    *) printf '%s' "$bind" ;;
+  esac
 }
 
 # Remove the frontend build dir so the next start rebuilds it.
@@ -42,8 +63,9 @@ clear_build() {
   fi
 }
 
-# Block until the frontend is actually serving on <port>, then print the URL.
-# Bails out (non-zero) with recent logs if the container crashes or restart-loops
+# Block until the frontend is actually serving on <port>, then print the URL. With
+# the local backend enabled, also waits for the backend to answer through nginx.
+# Bails out (non-zero) with recent logs if a container crashes or restart-loops
 # instead of hanging for the whole timeout. Requires COMPOSE_CMD to be set.
 #
 # Usage: wait_for_serving <port>
@@ -52,8 +74,13 @@ wait_for_serving() {
   local port="$1"
   local waited=0 interval=5 timeout="${SERVE_TIMEOUT:-1800}"
   local baseline_restarts status restarts
+  local baseline_backend_restarts backend_restarts probe_path="/"
 
   baseline_restarts="$(docker inspect -f '{{.RestartCount}}' "$CONTAINER_NAME" 2>/dev/null || echo 0)"
+  baseline_backend_restarts="$(docker inspect -f '{{.RestartCount}}' "$BACKEND_CONTAINER_NAME" 2>/dev/null || echo 0)"
+  case ",$(read_env COMPOSE_PROFILES '')," in
+    *,backend,*) probe_path="/health" ;;
+  esac
 
   echo ""
   echo "==> Waiting for the frontend to finish building and start serving..."
@@ -65,9 +92,9 @@ wait_for_serving() {
     # Serving? Probe nginx from inside the container (avoids docker-proxy
     # accepting the published port before nginx is actually up).
     if docker exec "$CONTAINER_NAME" curl -fsS -o /dev/null -m 3 \
-         "http://localhost:${port}/" >/dev/null 2>&1; then
+         "http://localhost:${port}${probe_path}" >/dev/null 2>&1; then
       printf '\r%*s\r' 40 ''   # clear the heartbeat line
-      echo "==> Serving. Open:  http://$(hostname):${port}/"
+      echo "==> Serving. Open:  http://$(read_url_host):${port}/"
       return 0
     fi
 
@@ -80,6 +107,14 @@ wait_for_serving() {
       echo "ERROR: container is not running cleanly (status: ${status}, restarts: ${restarts})." >&2
       echo "       The build likely failed. Recent logs:" >&2
       "${COMPOSE_CMD[@]}" logs --tail=40 2>&1 | sed 's/^/    /' >&2
+      return 1
+    fi
+
+    backend_restarts="$(docker inspect -f '{{.RestartCount}}' "$BACKEND_CONTAINER_NAME" 2>/dev/null || echo "$baseline_backend_restarts")"
+    if [ "${backend_restarts:-0}" -gt "${baseline_backend_restarts:-0}" ]; then
+      printf '\r%*s\r' 40 ''
+      echo "ERROR: the backend is restarting (restarts: ${backend_restarts}). Recent logs:" >&2
+      "${COMPOSE_CMD[@]}" logs --tail=40 "$BACKEND_CONTAINER_NAME" 2>&1 | sed 's/^/    /' >&2
       return 1
     fi
 

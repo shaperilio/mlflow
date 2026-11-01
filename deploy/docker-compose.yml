@@ -1,4 +1,4 @@
-# Compose file for the MLflow custom frontend (proxy mode).
+# Compose file for the MLflow custom frontend and its optional local backend.
 #
 # Configuration comes from deploy/.env (copy deploy/.env.example to start).
 # The repo root is bind-mounted at /mlflow so the container builds and serves
@@ -14,10 +14,41 @@ services:
       PORT: "${PORT:-42069}"
       LOGO_FILE: "${LOGO_FILE:-}"
     ports:
-      - "${PORT:-42069}:${PORT:-42069}"
+      # Nothing here requires a login, so only this machine can connect by default.
+      - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-42069}:${PORT:-42069}"
     volumes:
       # Bind-mount the repo root (the parent of this deploy/ directory) into the
       # container. Relative on purpose: works wherever the repo is checked out.
       - type: bind
         source: ..
         target: /mlflow
+    depends_on:
+      mlflow-backend:
+        condition: service_started
+        # Absent unless the backend profile is on.
+        required: false
+        # nginx resolves the backend once at startup, so follow it if it's recreated.
+        restart: true
+
+  # Optional local backend, enabled by COMPOSE_PROFILES=backend. It publishes no
+  # ports: everything reaches it through nginx in mlflow-frontend.
+  mlflow-backend:
+    # Keep this in step with mlflow/version.py. The fork's changes are all in the
+    # frontend, so the stock image is the same backend.
+    image: ghcr.io/mlflow/mlflow:v3.17.2
+    container_name: mlflow-backend
+    profiles: [backend]
+    restart: unless-stopped
+    environment:
+      MLFLOW_SERVER_CORS_ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-}"
+    entrypoint: ["bash", "/deploy/backend-entrypoint.sh"]
+    volumes:
+      - type: bind
+        source: ./backend-entrypoint.sh
+        target: /deploy/backend-entrypoint.sh
+        read_only: true
+      - type: bind
+        source: "${DATA_DIR:-./data}"
+        target: /data
+        bind:
+          create_host_path: true

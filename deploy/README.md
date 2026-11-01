@@ -1,13 +1,17 @@
 # MLflow custom frontend — containerized deployment
 
 Runs this fork's MLflow web UI in a Docker container and serves it on a port of
-your choice, **proxying all API calls to an existing MLflow backend**. No
-backend, database, or artifact store runs here — the container only builds and
-serves the frontend.
+your choice, **proxying all API calls to an MLflow backend**, which is either:
+
+- **A local backend** running next to it, keeping its database and artifacts in a
+  folder you choose.
+- **An existing backend** running somewhere else, in which case no backend,
+  database, or artifact store runs here.
 
 ```
-browser ──▶ nginx (this container, port $PORT) ──▶ your MLflow backend ($BACKEND_URL)
-                     └── serves the static React build
+browser  ─┐
+          ├─▶ nginx (frontend container, port $PORT) ──▶ MLflow backend ($BACKEND_URL)
+clients  ─┘            └── serves the static React build
 ```
 
 ## Layout
@@ -16,8 +20,9 @@ browser ──▶ nginx (this container, port $PORT) ──▶ your MLflow backe
 | ------------------------- | --------------------------------------------------------------------------------------------- |
 | `Dockerfile`              | Image with Node + nginx that builds and serves the frontend                                   |
 | `entrypoint.sh`           | Builds the frontend (if needed) and starts nginx                                              |
+| `backend-entrypoint.sh`   | Upgrades the local backend's database (if needed) and starts the backend                      |
 | `nginx.conf.template`     | nginx site; `${PORT}`/`${BACKEND_URL}`/`${LOGO_FILE}` filled in at runtime                    |
-| `docker-compose.yml`      | Service definition; bind-mounts the repo, reads `.env`                                        |
+| `docker-compose.yml`      | The frontend and optional backend services; bind-mounts the repo, reads `.env`                |
 | `.env.example`            | Template for your local config (copy to `.env`)                                               |
 | `start.sh`                | One-shot launcher: starts Docker if needed, brings the container up, waits until it's serving |
 | `pull-latest.sh`          | Pull the latest branch tip, rebuild/restart, wait until serving (deployment host)             |
@@ -38,7 +43,7 @@ git clone -b master --single-branch https://github.com/shaperilio/mlflow.git
 cd mlflow
 cd deploy
 
-# 1. Configure (set BACKEND_URL to your MLflow server, choose a PORT)
+# 1. Configure (choose a local or existing backend, and a PORT)
 cp .env.example .env
 nano .env
 
@@ -72,6 +77,79 @@ docker compose up -d --force-recreate
 
 from within the `deploy` directory.
 
+On Windows, start Docker Desktop and run the `.sh` scripts from Git Bash, skipping
+step 2.
+
+## Choosing a backend
+
+`.env` selects one of these (`.env.example` shows both).
+
+### Local backend
+
+```bash
+COMPOSE_PROFILES=backend
+BACKEND_URL=http://mlflow-backend:5000
+DATA_DIR=/srv/mlflow-data
+```
+
+This adds an `mlflow-backend` container running the stock MLflow image. It
+publishes no ports of its own, so the UI and your training scripts all go through
+nginx on `$PORT`:
+
+```bash
+export MLFLOW_TRACKING_URI=http://localhost:42069
+```
+
+`DATA_DIR` is created if it doesn't exist. Keep it outside the repo and back it
+up; nothing here does that for you. It holds:
+
+| Path         | Contents                                                      |
+| ------------ | ------------------------------------------------------------- |
+| `mlflow.db`  | Experiments, runs, metrics, parameters and the model registry |
+| `artifacts/` | Logged artifacts and models                                   |
+| `backups/`   | The database as it was before each MLflow upgrade             |
+
+When the image in `docker-compose.yml` moves to a new MLflow version, the next
+start saves a copy of the database in `backups/` and applies any migrations. To
+bring in an existing `mlflow.db`, stop the backend and copy it into `DATA_DIR`; it
+gets the same treatment on the next start.
+
+### Existing backend
+
+```bash
+BACKEND_URL=http://my-mlflow-host:5000
+```
+
+Leave `COMPOSE_PROFILES` and `DATA_DIR` unset. If you open the UI at anything other
+than `localhost`, a recent backend rejects what it does until that URL is in the
+backend's own `--cors-allowed-origins`.
+
+## Reaching it from other machines
+
+Nothing here requires a login: anyone who can reach the port can read and change
+everything. So by default the port is only published on `127.0.0.1`.
+
+With [Tailscale](https://tailscale.com), keep that default and share the port
+with your own devices only:
+
+```bash
+tailscale serve --bg 42069
+```
+
+Then tell the local backend about the URL that prints, in `.env`, and apply it
+with `./start.sh`:
+
+```bash
+ALLOWED_ORIGINS=https://my-pc.my-tailnet.ts.net
+```
+
+Without that, pages load but the backend rejects everything the UI does from that
+URL, including listing runs. Training scripts don't need it; point
+`MLFLOW_TRACKING_URI` at the same URL.
+
+To open the port on every network interface instead, set `BIND_ADDRESS=0.0.0.0`.
+Don't do that on a network you don't trust.
+
 ## Run on boot (always-on)
 
 ```bash
@@ -80,13 +158,16 @@ sudo ./install-service.sh
 ```
 
 This installs and enables `mlflow-frontend.service`, which brings the container
-up at boot via Compose (the container itself uses `restart: unless-stopped`).
+up at boot via Compose (the containers themselves use `restart: unless-stopped`).
 
 ```bash
 systemctl status mlflow-frontend     # check it
 sudo systemctl stop mlflow-frontend  # stop it
 sudo systemctl disable mlflow-frontend
 ```
+
+On Windows, the containers come back whenever Docker Desktop does. Turn on its
+"Start Docker Desktop when you sign in" setting, and stop the PC from sleeping.
 
 ## Updating to the latest code
 
@@ -114,6 +195,10 @@ DEPLOY_BRANCH=some-branch ./pull-latest.sh
 The script fetches that branch by name, so this works even on a
 `--single-branch` clone of another branch (a plain `git fetch` there only ever
 fetches the branch it was cloned with).
+
+A deployment that predates `BIND_ADDRESS` publishes its port on every interface,
+and updating moves it to `127.0.0.1`. If you rely on reaching it over the network,
+add `BIND_ADDRESS=0.0.0.0` to its `.env` first.
 
 ### Moving an existing `3.9.0-custom` deployment to `master` (one time)
 
@@ -152,13 +237,15 @@ No rebuild is needed — swapping the logo is just a file change plus a restart.
 
 ## Requirements
 
-- Linux host with **Docker Engine + Compose** (use `install-docker.sh` on Ubuntu).
+- Linux host with **Docker Engine + Compose** (use `install-docker.sh` on Ubuntu),
+  or Windows with **Docker Desktop**.
 - At least **8 GB RAM** available for the one-time frontend build.
-- Network reachability from the host to your `BACKEND_URL`.
-- A backend that's as new as this frontend. The UI is built from the fork's
-  `master` (based on the 3.17.2 release) and calls APIs that older releases
-  don't have, so run a backend from the same checkout or MLflow 3.17.2 or newer.
-  An older backend (e.g. 3.9.0) will leave parts of the UI broken.
+- With an existing backend:
+  - Network reachability from the host to your `BACKEND_URL`.
+  - A backend that's as new as this frontend. The UI is built from the fork's
+    `master` (based on the 3.17.2 release) and calls APIs that older releases
+    don't have, so run MLflow 3.17.2 or newer there. An older backend (e.g.
+    3.9.0) will leave parts of the UI broken.
 
 ## Notes
 
