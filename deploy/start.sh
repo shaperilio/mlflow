@@ -14,7 +14,7 @@ source ./_lib.sh
 # --- Require configuration ---
 if [ ! -f .env ]; then
   echo "ERROR: deploy/.env not found." >&2
-  echo "       Copy .env.example to .env and set BACKEND_URL, then re-run." >&2
+  echo "       Copy .env.example to .env, then re-run." >&2
   exit 1
 fi
 

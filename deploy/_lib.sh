@@ -7,9 +7,43 @@ BACKEND_CONTAINER_NAME="mlflow-backend"
 # On Windows, stop Git Bash from rewriting container paths like /mlflow into host paths.
 export MSYS_NO_PATHCONV=1
 
-# Resolve the compose command into the COMPOSE_CMD array.
-# Returns non-zero if neither the plugin nor the legacy binary is available.
+# Which backend .env asks for: prints "local" when DATA_DIR is set (run a backend here) or
+# "remote" when BACKEND_URL is set (use an existing one). Exactly one of the two must be set;
+# otherwise prints an error and returns non-zero. Run from the deploy/ directory.
+backend_mode() {
+  local data_dir backend_url
+  data_dir="$(read_env DATA_DIR '')"
+  backend_url="$(read_env BACKEND_URL '')"
+  if [ -n "$data_dir" ] && [ -z "$backend_url" ]; then
+    printf 'local'
+  elif [ -z "$data_dir" ] && [ -n "$backend_url" ]; then
+    printf 'remote'
+  elif [ -n "$data_dir" ]; then
+    echo "ERROR: deploy/.env sets both DATA_DIR and BACKEND_URL; set exactly one." >&2
+    echo "       DATA_DIR runs a backend here; BACKEND_URL uses an existing one." >&2
+    return 1
+  else
+    echo "ERROR: deploy/.env sets neither DATA_DIR nor BACKEND_URL; set exactly one." >&2
+    echo "       DATA_DIR runs a backend here; BACKEND_URL uses an existing one." >&2
+    return 1
+  fi
+}
+
+# Extra compose arguments for the backend mode in .env: the local backend is a compose profile
+# that has to be switched on for every compose command. Prints nothing in remote mode.
+compose_profile_args() {
+  case "$(backend_mode)" in
+    local) printf -- '--profile backend' ;;
+    remote) ;;
+    *) return 1 ;;
+  esac
+}
+
+# Resolve the compose command into the COMPOSE_CMD array, including the profile arguments for
+# the backend mode in .env. Returns non-zero if neither the plugin nor the legacy binary is
+# available, or if .env doesn't pick a backend.
 resolve_compose() {
+  local profile_args
   if docker compose version >/dev/null 2>&1; then
     COMPOSE_CMD=(docker compose)
   elif command -v docker-compose >/dev/null 2>&1; then
@@ -19,6 +53,10 @@ resolve_compose() {
     echo "       Run ./install-docker.sh (Ubuntu) or install the compose plugin." >&2
     return 1
   fi
+  profile_args="$(compose_profile_args)" || return 1
+  # shellcheck disable=SC2206  # word-splitting the flags is intended
+  [ -n "$profile_args" ] && COMPOSE_CMD+=($profile_args)
+  return 0
 }
 
 # Print a setting from .env, or a default if it's unset. Run from the deploy/ directory.
@@ -78,9 +116,7 @@ wait_for_serving() {
 
   baseline_restarts="$(docker inspect -f '{{.RestartCount}}' "$CONTAINER_NAME" 2>/dev/null || echo 0)"
   baseline_backend_restarts="$(docker inspect -f '{{.RestartCount}}' "$BACKEND_CONTAINER_NAME" 2>/dev/null || echo 0)"
-  case ",$(read_env COMPOSE_PROFILES '')," in
-    *,backend,*) probe_path="/health" ;;
-  esac
+  [ "$(backend_mode)" = "local" ] && probe_path="/health"
 
   echo ""
   echo "==> Waiting for the frontend to finish building and start serving..."

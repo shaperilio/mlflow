@@ -5,6 +5,7 @@
 # Usage:  sudo ./install-service.sh
 set -euo pipefail
 cd "$(dirname "$0")"
+source ./_lib.sh
 DEPLOY_DIR="$(pwd)"
 
 if [ "$EUID" -ne 0 ]; then
@@ -14,11 +15,12 @@ fi
 
 if [ ! -f .env ]; then
   echo "ERROR: deploy/.env not found." >&2
-  echo "       Copy .env.example to .env and set BACKEND_URL before installing." >&2
+  echo "       Copy .env.example to .env before installing." >&2
   exit 1
 fi
 
-# Resolve an absolute compose command for the unit file.
+# Resolve an absolute compose command for the unit file. The backend mode in .env is baked in,
+# so re-run this installer after switching between DATA_DIR and BACKEND_URL.
 if docker compose version >/dev/null 2>&1; then
   COMPOSE="$(command -v docker) compose"
 elif command -v docker-compose >/dev/null 2>&1; then
@@ -27,6 +29,8 @@ else
   echo "ERROR: 'docker compose' is not available. Install it first (./install-docker.sh)." >&2
   exit 1
 fi
+PROFILE_ARGS="$(compose_profile_args)" || exit 1
+[ -n "$PROFILE_ARGS" ] && COMPOSE="${COMPOSE} ${PROFILE_ARGS}"
 
 UNIT=/etc/systemd/system/mlflow-frontend.service
 echo "==> Writing ${UNIT}"

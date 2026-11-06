@@ -4,6 +4,7 @@
 # 1. Installs JS deps (if missing)
 # 2. Builds the frontend (if not already built)
 # 3. Renders the nginx config from a template using BACKEND_URL / PORT
+#    (BACKEND_URL defaults to the local backend container when unset)
 # 4. Serves the build in the foreground
 #
 # All inputs come from the environment (set via deploy/.env -> docker-compose).
@@ -11,7 +12,7 @@ set -euo pipefail
 
 JS_DIR="/mlflow/mlflow/server/js"
 
-: "${BACKEND_URL:?BACKEND_URL is required (set it in deploy/.env)}"
+: "${BACKEND_URL:=http://mlflow-backend:5000}"
 : "${PORT:=42069}"
 # Optional custom sidebar logo (a file in deploy/). When unset, point the alias at a file that
 # does not exist so the /branding/logo.png request 404s and the frontend uses the default logo.

@@ -33,6 +33,24 @@ clients  ─┘            └── serves the static React build
 
 `.env` is **gitignored** — your backend URL never gets committed.
 
+## Settings
+
+Everything is configured in `deploy/.env`:
+
+| Variable          | Meaning                                                                                        | Default     |
+| ----------------- | ---------------------------------------------------------------------------------------------- | ----------- |
+| `DATA_DIR`        | Set it to run a local backend here; the folder for its database and artifacts                  | —           |
+| `BACKEND_URL`     | Set it *instead* to use an existing backend: where nginx forwards API calls, with scheme+port  | —           |
+| `PORT`            | Port the UI (and, through it, the backend) is served on                                        | `42069`     |
+| `BIND_ADDRESS`    | Interface the port is published on; `0.0.0.0` opens it to the network                          | `127.0.0.1` |
+| `ALLOWED_ORIGINS` | Local backend only: URLs other than `localhost` you open the UI at, comma-separated             | empty       |
+| `LOGO_FILE`       | Filename of a custom sidebar logo placed in `deploy/`                                          | empty       |
+
+Exactly one of `DATA_DIR` and `BACKEND_URL` must be set; the scripts refuse to
+start otherwise. Each setting is explained in the sections below. After changing
+one, run `./start.sh` again (or `sudo systemctl restart mlflow-frontend` if you
+installed the service); it picks up the new values.
+
 ## Quick start
 
 On your server:
@@ -67,37 +85,29 @@ To follow the build live in another terminal while you wait:
 docker compose logs -f
 ```
 
-NOTE: if you have to change `.env` while the container is running, you'll have to do this:
-
-```
-docker compose up -d --force-recreate
-#   …or if you installed the systemd service:
-#   sudo systemctl restart mlflow-frontend
-```
-
-from within the `deploy` directory.
+To apply a change to `.env` while it's running, run `./start.sh` again (or
+`sudo systemctl restart mlflow-frontend` if you installed the service).
 
 On Windows, start Docker Desktop and run the `.sh` scripts from Git Bash, skipping
 step 2.
 
 ## Choosing a backend
 
-`.env` selects one of these (`.env.example` shows both).
+`.env` selects one of these by which variable you set (`.env.example` shows
+both).
 
 ### Local backend
 
 ```bash
-COMPOSE_PROFILES=backend
-BACKEND_URL=http://mlflow-backend:5000
 DATA_DIR=/srv/mlflow-data
 ```
 
-This adds an `mlflow-backend` container running the stock MLflow image. It
+Setting `DATA_DIR` adds an `mlflow-backend` container running the stock MLflow image. It
 publishes no ports of its own, so the UI and your training scripts all go through
-nginx on `$PORT`:
+nginx on `PORT` — the port `.env` sets, `42069` unless you change it:
 
 ```bash
-export MLFLOW_TRACKING_URI=http://localhost:42069
+export MLFLOW_TRACKING_URI=http://localhost:42069   # or whatever PORT you chose
 ```
 
 `DATA_DIR` is created if it doesn't exist. Keep it outside the repo and back it
@@ -120,7 +130,8 @@ gets the same treatment on the next start.
 BACKEND_URL=http://my-mlflow-host:5000
 ```
 
-Leave `COMPOSE_PROFILES` and `DATA_DIR` unset. If you open the UI at anything other
+Leave `DATA_DIR` unset. `BACKEND_URL` is where nginx forwards every API call;
+the UI itself is still served on `PORT`. If you open the UI at anything other
 than `localhost`, a recent backend rejects what it does until that URL is in the
 backend's own `--cors-allowed-origins`.
 
@@ -159,6 +170,8 @@ sudo ./install-service.sh
 
 This installs and enables `mlflow-frontend.service`, which brings the container
 up at boot via Compose (the containers themselves use `restart: unless-stopped`).
+The unit bakes in which backend `.env` chose, so re-run the installer if you
+later switch between `DATA_DIR` and `BACKEND_URL`.
 
 ```bash
 systemctl status mlflow-frontend     # check it
@@ -225,11 +238,8 @@ Replace the MLflow wordmark in the sidebar with your own logo:
    background works best; it's scaled to fit the top of the left sidebar — at
    most 140×48 px — keeping its aspect ratio).
 2. Set `LOGO_FILE` in `.env` to its filename, e.g. `LOGO_FILE=custom_logo.png`.
-3. Restart so the change is picked up:
-
-   ```bash
-   docker compose up -d --force-recreate   # or: sudo systemctl restart mlflow-frontend
-   ```
+3. Run `./start.sh` again (or `sudo systemctl restart mlflow-frontend`) so the
+   change is picked up.
 
 nginx then serves it at `/branding/logo.png` and the sidebar uses it. Leave
 `LOGO_FILE` empty (or remove the file) to fall back to the default MLflow logo.
@@ -249,6 +259,6 @@ No rebuild is needed — swapping the logo is just a file change plus a restart.
 
 ## Notes
 
-- Everything is driven by `deploy/.env`; there are no host-specific paths in any
-  committed file (the repo is bind-mounted via a relative path).
-- To change the port or backend, edit `.env` and restart (`./start.sh`).
+- Everything is driven by `deploy/.env` (see [Settings](#settings)); there are
+  no host-specific paths in any committed file (the repo is bind-mounted via a
+  relative path).

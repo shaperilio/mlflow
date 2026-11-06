@@ -10,7 +10,8 @@ services:
     container_name: mlflow-frontend
     restart: unless-stopped
     environment:
-      BACKEND_URL: "${BACKEND_URL:?BACKEND_URL must be set in deploy/.env}"
+      # Unset when running the local backend: the default is that container.
+      BACKEND_URL: "${BACKEND_URL:-http://mlflow-backend:5000}"
       PORT: "${PORT:-42069}"
       LOGO_FILE: "${LOGO_FILE:-}"
     ports:
@@ -30,8 +31,9 @@ services:
         # nginx resolves the backend once at startup, so follow it if it's recreated.
         restart: true
 
-  # Optional local backend, enabled by COMPOSE_PROFILES=backend. It publishes no
-  # ports: everything reaches it through nginx in mlflow-frontend.
+  # Optional local backend, run when deploy/.env sets DATA_DIR (the scripts turn
+  # this profile on for that). It publishes no ports: everything reaches it
+  # through nginx in mlflow-frontend.
   mlflow-backend:
     # Keep this in step with mlflow/version.py. The fork's changes are all in the
     # frontend, so the stock image is the same backend.
